@@ -1,0 +1,45 @@
+html, body {
+	position: relative;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+#graphContainer {
+	position: relative;
+    height: 100%;
+    left: 0;
+    top: 0;
+    z-index: 10;
+    margin-left: 120px;
+}
+
+#legendContainer {
+	float: left;
+	height: 100%;
+	width: 120px;
+	background-color: #dcdcdc;
+	box-shadow: 5px 5px 3px #888888;
+}
+    	
+.popover-title > span {
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+ .popover-content {
+	height: 300px;
+	overflow-y: scroll;
+}
+	
+html body div#graphContainer div.vis-network div.vis-network-tooltip {
+	width: 15em;
+	background: none;
+	border: none;
+	box-shadow: none;
+}
+	
+html body div#graphContainer div.vis-network div.vis-network-tooltip div.popover {
+	display: inline;
+}
+	
