@@ -101,17 +101,17 @@ function drawTopology(data){
 		groups: { // define common properties of certain groups of nodes
 			node: {
 				shape: "image", 
-				image: "blueRouter.svg",
+				image: "res/img/blueRouter.svg",
 				physics: true
 			},
 			server: {
 				shape: "image",
-				image: "server.svg",
+				image: "res/img/server.svg",
 				physics: true
 			},
 			client: {
 				shape: "image",
-				image: "client.svg",
+				image: "res/img/client.svg",
 				physics: true
 			}
 		},

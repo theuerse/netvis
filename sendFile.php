@@ -1,11 +1,11 @@
 <?php
 // associative array sporting the offered Files and their respective paths
 $files = array(
-	"generated_network_top.txt" => "pi-network/generated_network_top.txt", 
+	"generated_network_top.txt" => "network/generated_network_top.txt", 
 );
 
 for($i=0; $i<20; $i++){
-	$files += array("PI$i.json" => "pi-network/PI$i.json");
+	$files += array("PI$i.json" => "network/PI$i.json");
 }
 
 
