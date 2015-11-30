@@ -225,9 +225,16 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  
 	   keys.forEach(function(entry) {
 			 $('#grpHeader' + entry).bind('click', function (e) {
-			 network.selectNodes($.merge([entry],groups[entry]));
+				network.selectNodes($.merge([entry],groups[entry]));
 			});
 	  });
+	  
+	  // select first group
+	  if(keys.length > 0) network.selectNodes($.merge([keys[0]],groups[keys[0]]));
+	  
+	  // add random-seed btn
+	  $('#legendContainer').append('<p></p><center><a href="' + window.location.pathname +'?seed=' + 
+			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></center>');
 }
     
 // checks if a given string starts with given prefix
