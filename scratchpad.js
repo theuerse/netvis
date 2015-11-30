@@ -371,5 +371,18 @@ function getUrlVar(name){
 	if(param === null) return undefined;
 	else return param[1];
 }
+
+
+
+
+
+	// update value/(width) of edges in normalized fashion
+	// already performed by vis.js
+	/*var intervalSize = bitrateBounds[1] - bitrateBounds[0];
+	var edgeIds = edges.getIds();
+	for(var id in edgeIds){
+		var normalizedValue = (edges.get(edgeIds[id]).value/intervalSize)*10;
+		edges.update({id: edgeIds[id], value: normalizedValue});
+	}*
  
 

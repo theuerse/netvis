@@ -40,6 +40,8 @@ function drawTopology(data){
 	var servers = []; // array containing the ids of all servers
 	var clients = []; // array containing the ids of all clients
 	var numberOfNodes = 0; // total number of nodes
+	// bitrateBounds[lower_bound, upper_bound]
+	var bitrateBounds=[Number.MAX_VALUE, Number.MIN_VALUE];
 	
 	for(var index in lines){
 		if(stringStartsWith(lines[index],"#")) {
@@ -61,7 +63,12 @@ function drawTopology(data){
 
 			// add edge first two entries ... connected nodes ( a -> b)
 			edges.add({id: edgeInfo[0] + '-'+ edgeInfo[1], from: edgeInfo[0], 
-				to: edgeInfo[1], title: getEdgeInfoHtml(edgeInfo), shadow: true});
+				to: edgeInfo[1], value: Math.max(edgeInfo[2], edgeInfo[3]), 
+				title: getEdgeInfoHtml(edgeInfo), shadow: true});
+				
+			// update bitrateBounds statistic
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[2]),Math.max(bitrateBounds[1],edgeInfo[2])];
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[3]),Math.max(bitrateBounds[1],edgeInfo[3])];
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -84,8 +91,6 @@ function drawTopology(data){
 			}			
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
 				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
-				
-	
 		}
 	}
 	
@@ -103,6 +108,7 @@ function drawTopology(data){
 	var options = {
 		// specify randomseed => network is the same at every startup
 		autoResize: false,
+		height: '100%',
 		layout:{randomSeed: seed}, 
 		groups: { // define common properties of certain groups of nodes
 			node: {
@@ -139,7 +145,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(options,[numberOfNodes,servers,clients]); 
+	drawLegend(jQuery.extend({},options),[numberOfNodes,servers,clients],bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -159,7 +165,7 @@ function drawTopology(data){
     });
 }
 
-function drawLegend(options,occurranceInfo){
+function drawLegend(options,occurranceInfo,bitrateBounds){
 	  // occurranceInfo contains the total number of nodes, the id's of the servers
 	  // and the id's of the clients
 	  var nodes = new vis.DataSet();
@@ -170,7 +176,8 @@ function drawLegend(options,occurranceInfo){
       var x = container.clientWidth / 2;  
       var y = container.clientHeight / 2; 
       var step = 100;
-      
+  
+      options.height = '300px'; // limit height, make room for additional information
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
@@ -182,6 +189,12 @@ function drawLegend(options,occurranceInfo){
       var data = {nodes: nodes,edges: edges};
       // draw legend
 	  var network = new vis.Network(container, data, options);
+	  
+	  // add additional information
+	  // min-/ max-Bitrate
+	  $("#legendContainer").append('<p></p>');
+	  $("#legendContainer").append('<p>Min bitrate: ' + bitrateBounds[0] +'[kbits]</p>');
+	  $("#legendContainer").append('<p>Max bitrate: ' + bitrateBounds[1] +'[kbits]</p>');
 }
     
 // checks if a given string starts with given prefix
