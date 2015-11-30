@@ -275,31 +275,12 @@ function buildInfoTable(jsonData){
 								'<td>' + jsonData.Load + '</td>' +
 							'</tr>' +
 							'<tr>' +
-								'<th>cpu 0</th>' +
-								'<td>' + parseInt(jsonData.cpu0freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>cpu 1</th>' +
-								'<td>' + parseInt(jsonData.cpu1freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
 								'<th>ram</th>' +
 								'<td>' +
 									'<div class="progress">' +
 										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ ramUsagePercent +
 												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ ramUsagePercent +'%">' +
 												ramUsagePercent +'%' +
-											'</div>' +
-									 '</div>' +
-								'</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>hdd</th>' +
-								'<td>' +
-									'<div class="progress">' +
-										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ hddUsagePercent +
-												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ hddUsagePercent +'%">' +
-												hddUsagePercent +'%' +
 											'</div>' +
 									 '</div>' +
 								'</td>' +
@@ -331,6 +312,25 @@ function buildInfoTable(jsonData){
 							'<tr>' +
 								'<th>HDD temp</th>' +
 								'<td>' + jsonData.hddtemp.replace("°C","")+ ' [°C]</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>hdd</th>' +
+								'<td>' +
+									'<div class="progress">' +
+										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ hddUsagePercent +
+												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ hddUsagePercent +'%">' +
+												hddUsagePercent +'%' +
+											'</div>' +
+									 '</div>' +
+								'</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>cpu 0</th>' +
+								'<td>' + parseInt(jsonData.cpu0freq)/1000 +  ' [MHz]</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>cpu 1</th>' +
+								'<td>' + parseInt(jsonData.cpu1freq)/1000 +  ' [MHz]</td>' +
 							'</tr>' +
 							'<tr>' +
 								'<th>Uptime</th>' +
