@@ -1,6 +1,9 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
  var statusUpdateIntervals = {};
+ 	// colors of BYR color wheel, order changed
+	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
+		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
  
  $(document).ready(function(){
 	    // hide javaScriptAlert - div, proof that js works
@@ -25,9 +28,6 @@
 function drawTopology(data){
 	var nodes = new vis.DataSet();
 	var edges = new vis.DataSet();  
-	// colors of BYR color wheel, order changed
-	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
-		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
 		
 	// process file-data
 	// seperate lines
@@ -38,7 +38,7 @@ function drawTopology(data){
 	var edgeInfo;  // holds information about a single edge
 	var nodeInfo;  // holds information about a single node
 	var servers = []; // array containing the ids of all servers
-	var clients = []; // array containing the ids of all clients
+	var groups = {}; // contains server -> clients entries
 	var numberOfNodes = 0; // total number of nodes
 	// bitrateBounds[lower_bound, upper_bound]
 	var bitrateBounds=[Number.MAX_VALUE, Number.MIN_VALUE];
@@ -78,19 +78,26 @@ function drawTopology(data){
 			nodeInfo = lines[index].split(",");
 			
 			// images from GPL licensed "Tango Desktop Project" (tango.freedesktop.org)
+			// update groups	 
+			if(groups[nodeInfo[1]] === undefined){
+				groups[nodeInfo[1]] = [nodeInfo[0]];
+			} else {
+				groups[nodeInfo[1]] = $.merge(groups[nodeInfo[1]],[nodeInfo[0]]);
+			}
+			
+			// only use groups anymore? (no more servers-array)
+
 			// nodeInfo[1] ... id of server - node
 			if($.inArray(nodeInfo[1],servers)<0){
 				servers.push(nodeInfo[1]); // add server-id only if not already present					
 			}				
 			nodes.update({id: nodeInfo[1], label: 'Pi #' + nodeInfo[1], group: "server",
 				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
-
-			// nodeInfo[0] ... id of client - node
-			if($.inArray(nodeInfo[0],clients)<0){
-				clients.push(nodeInfo[0]); // add client-id only, if not already present					
-			}			
+			
+			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
 				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+			
 		}
 	}
 	
@@ -145,7 +152,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(jQuery.extend({},options),[numberOfNodes,servers,clients],bitrateBounds); 
+	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -165,9 +172,7 @@ function drawTopology(data){
     });
 }
 
-function drawLegend(options,occurranceInfo,bitrateBounds){
-	  // occurranceInfo contains the total number of nodes, the id's of the servers
-	  // and the id's of the clients
+function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
@@ -181,20 +186,48 @@ function drawLegend(options,occurranceInfo,bitrateBounds){
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (occurranceInfo[0] - (occurranceInfo[1].length + occurranceInfo[2].length)) + ')'
+      var serverCount = Object.keys(groups).length;
+      var clientCount = 0;
+      for(var key in groups){
+		 clientCount += groups[key].length;
+	  }
+      
+      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (numberOfNodes - (serverCount + clientCount)) + ')'
 		  , group: 'node', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + occurranceInfo[1].length + ')', group: 'server', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + occurranceInfo[2].length + ')', group: 'client', fixed: true, shadow: true,  physics:false});
+      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + serverCount + ')', group: 'server', fixed: true, shadow: true, physics:false});
+      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + clientCount + ')', group: 'client', fixed: true, shadow: true,  physics:false});
       
       var data = {nodes: nodes,edges: edges};
       // draw legend
-	  var network = new vis.Network(container, data, options);
+	  var legend = new vis.Network(container, data, options);
 	  
 	  // add additional information
 	  // min-/ max-Bitrate
 	  $("#legendContainer").append('<p></p>');
-	  $("#legendContainer").append('<p>Min bitrate: ' + bitrateBounds[0] +'[kbits]</p>');
-	  $("#legendContainer").append('<p>Max bitrate: ' + bitrateBounds[1] +'[kbits]</p>');
+	  $("#legendContainer").append('<p>min bitrate: ' + bitrateBounds[0] +'[kbits]</p>');
+	  $("#legendContainer").append('<p>max bitrate: ' + bitrateBounds[1] +'[kbits]</p>');
+	  
+	  // add group information
+	  var groupsInfo = "";
+	  
+	  // for every server
+	  var i = 1;
+	  for(var key in groups){
+		  groupsInfo += '<h3 id="grpHeader' + key +'">Group ' + (i++) + '</h3>' +
+					'<div>' +
+						'<p>' + key + ',' + groups[key] + '</p>' +
+					'</div>';
+	  }
+	  
+	  $("#legendContainer").append('<p></p><div id="grpAccordion">' + groupsInfo + '</div>');
+	  for(var key in groups){
+		  console.log(key);
+		  $('#grpHeader' + key).click(function(){
+			  console.log(key + " clicked!");
+			  network.selectNodes($.merge([key],groups[key]));
+		  });
+	  }
+	  $("#grpAccordion").accordion();
 }
     
 // checks if a given string starts with given prefix
