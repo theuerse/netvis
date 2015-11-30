@@ -37,7 +37,9 @@ function drawTopology(data){
 	var part = -1; 
 	var edgeInfo;  // holds information about a single edge
 	var nodeInfo;  // holds information about a single node
-	var servers=[]; // array containing the ids of all servers
+	var servers = []; // array containing the ids of all servers
+	var clients = []; // array containing the ids of all clients
+	var numberOfNodes = 0; // total number of nodes
 	
 	for(var index in lines){
 		if(stringStartsWith(lines[index],"#")) {
@@ -47,7 +49,8 @@ function drawTopology(data){
 			
 		if(part == 0){
 			// lines[index] contains number of nodes (assumed correct everytime)
-			for(i = 0; i < lines[index]; i++){
+			numberOfNodes = lines[index];
+			for(i = 0; i < numberOfNodes; i++){
 			  nodes.add({id: i, group: "node", shadow: true, 
 				  label: 'Pi #' + i});
 			}
@@ -70,12 +73,15 @@ function drawTopology(data){
 			// images from GPL licensed "Tango Desktop Project" (tango.freedesktop.org)
 			// nodeInfo[1] ... id of server - node
 			if($.inArray(nodeInfo[1],servers)<0){
-				servers.push(nodeInfo[1]); // server-id only, if not already present					
+				servers.push(nodeInfo[1]); // add server-id only if not already present					
 			}				
 			nodes.update({id: nodeInfo[1], label: 'Pi #' + nodeInfo[1], group: "server",
 				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 
 			// nodeInfo[0] ... id of client - node
+			if($.inArray(nodeInfo[0],clients)<0){
+				clients.push(nodeInfo[0]); // add client-id only, if not already present					
+			}			
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
 				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 				
@@ -133,7 +139,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(options); 
+	drawLegend(options,[numberOfNodes,servers,clients]); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -153,8 +159,9 @@ function drawTopology(data){
     });
 }
 
-function drawLegend(options){
-	  // draw legend
+function drawLegend(options,occurranceInfo){
+	  // occurranceInfo contains the total number of nodes, the id's of the servers
+	  // and the id's of the clients
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
@@ -167,9 +174,10 @@ function drawLegend(options){
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      nodes.add({id: 1, x: x, y: y, label: 'Router', group: 'node', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server', group: 'server', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client', group: 'client', fixed: true, shadow: true,  physics:false});
+      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (occurranceInfo[0] - (occurranceInfo[1].length + occurranceInfo[2].length)) + ')'
+		  , group: 'node', fixed: true, shadow: true, physics:false});
+      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + occurranceInfo[1].length + ')', group: 'server', fixed: true, shadow: true, physics:false});
+      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + occurranceInfo[2].length + ')', group: 'client', fixed: true, shadow: true,  physics:false});
       
       var data = {nodes: nodes,edges: edges};
       // draw legend
@@ -181,7 +189,6 @@ function stringStartsWith(string, prefix) {
 	return string.slice(0,prefix.length) == prefix;
 } 
 
-//show tooltip for edge ?
 
 // show tooltip for node
 function showNodeCooltip(id,network){

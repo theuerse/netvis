@@ -11,13 +11,13 @@ html, body {
     left: 0;
     top: 0;
     z-index: 10;
-    margin-left: 120px;
+    margin-left: 130px;
 }
 
 #legendContainer {
 	float: left;
 	height: 100%;
-	width: 120px;
+	width: 130px;
 	background-color: #dcdcdc;
 	box-shadow: 5px 5px 3px #888888;
 }
