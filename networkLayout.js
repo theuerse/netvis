@@ -171,10 +171,14 @@ function drawTopology(data){
 }
 
 function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
+	  $('#legendContainer').append('<ul id="legendList" class="list-group">' +
+										'<li id="legendGraph" class="noPadding list-group-item"></li>' +
+									'</ul>');
+	  
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
-      var container = document.getElementById('legendContainer');
+      var container = document.getElementById('legendGraph');
       // coordinates originating in midpoint
       var x = container.clientWidth / 2;  
       var y = container.clientHeight / 2; 
@@ -201,11 +205,8 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  
 	  // add additional information
 	  // min-/ max-Bitrate
-	  var bitrateInfo = '<p></p><ul class="list-group">' +
-							'<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0]+ '[kbits]</li>' +
-							'<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbits]</li>' +
-						'</ul>';	
-	   $("#legendContainer").append(bitrateInfo);
+	  $('#legendList').append('<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0] + '[kbits]</li>');
+	  $('#legendList').append('<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbits]</li>');
 	   
 	  // add group information
 	  var groupsInfo = "";
@@ -220,7 +221,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 					'</div>';
 	  });
 	  
-	  $("#legendContainer").append('<p></p><div id="grpAccordion">' + groupsInfo + '</div>');
+	  $("#legendList").append('<li class="noPadding list-group-item"><div id="grpAccordion">' + groupsInfo + '</div></li>');
 	  $("#grpAccordion").accordion();
 	  
 	   keys.forEach(function(entry) {
@@ -233,8 +234,8 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  if(keys.length > 0) network.selectNodes($.merge([keys[0]],groups[keys[0]]));
 	  
 	  // add random-seed btn
-	  $('#legendContainer').append('<p></p><center><a href="' + window.location.pathname +'?seed=' + 
-			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></center>');
+	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
+			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></li>');
 }
     
 // checks if a given string starts with given prefix

@@ -11,15 +11,24 @@ html, body {
     left: 0;
     top: 0;
     z-index: 10;
-    margin-left: 130px;
+    margin-left: 150px;
 }
 
 #legendContainer {
 	float: left;
 	height: 100%;
-	width: 130px;
+	overflow-y: scroll;
+	width: 150px;
 	background-color: #dcdcdc;
 	box-shadow: 5px 5px 3px #888888;
+}
+
+.noPadding {
+	padding: 0px;
+}
+
+#legendList li {
+	margin-top: 5px;
 }
     	
 .popover-title > span {
