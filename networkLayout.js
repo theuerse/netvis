@@ -82,10 +82,8 @@ function drawTopology(data){
 			if(groups[nodeInfo[1]] === undefined){
 				groups[nodeInfo[1]] = [nodeInfo[0]];
 			} else {
-				groups[nodeInfo[1]] = $.merge(groups[nodeInfo[1]],[nodeInfo[0]]);
+				$.merge(groups[nodeInfo[1]],[nodeInfo[0]]);
 			}
-			
-			// only use groups anymore? (no more servers-array)
 
 			// nodeInfo[1] ... id of server - node
 			if($.inArray(nodeInfo[1],servers)<0){
@@ -152,7 +150,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(network,jQuery.extend({},options),numberOfNodes,servers,groups,bitrateBounds); 
+	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -172,7 +170,7 @@ function drawTopology(data){
     });
 }
 
-function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
+function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
@@ -186,7 +184,7 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      var serverCount = servers.length;
+      var serverCount = Object.keys(groups).length;
       var clientCount = 0;
       for(var key in groups){
 		 clientCount += groups[key].length;
@@ -212,24 +210,24 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	  // add group information
 	  var groupsInfo = "";
 	  
-	  // for every server
-	  var i = 1;
-	  for(var key in groups){
-		  groupsInfo += '<h3 server="' + key +'" id="grpHeader' + key +'" style="color: ' + colors[$.inArray(key,servers)] +'">Group ' + (i++) + '</h3>' +
+	  // for every server (group-leader)
+	  var i = 0;
+	  var keys = Object.keys(groups).reverse();
+	  keys.forEach(function(entry) {
+			groupsInfo += '<h3 id="grpHeader' + entry +'" style="color: ' + colors[i] +'">Group ' + (++i) + '</h3>' +
 					'<div>' +
-						'<p>' + key + ',' + groups[key] + '</p>' +
+						'<p>' + entry + ',' + groups[entry] + '</p>' +
 					'</div>';
-	  }
+	  });
 	  
 	  $("#legendContainer").append('<p></p><div id="grpAccordion">' + groupsInfo + '</div>');
 	  $("#grpAccordion").accordion();
 	  
-	    for(var key in groups){
-		  $('#grpHeader' + key).bind('click', function (e) {
-			  var server = $(e.target).attr("server");
-			 network.selectNodes($.merge([server],groups[server]));
+	   keys.forEach(function(entry) {
+			 $('#grpHeader' + entry).bind('click', function (e) {
+			 network.selectNodes($.merge([entry],groups[entry]));
 			});
-	  }
+	  });
 }
     
 // checks if a given string starts with given prefix
