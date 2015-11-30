@@ -54,7 +54,7 @@ function drawTopology(data){
 			numberOfNodes = lines[index];
 			for(i = 0; i < numberOfNodes; i++){
 			  nodes.add({id: i, group: "node", shadow: true, 
-				  label: 'Pi #' + i});
+				  label: 'Pi #' + i, font: "20px arial black"});
 			}
 		}else if(part == 1){
 			// add edges
@@ -92,11 +92,11 @@ function drawTopology(data){
 				servers.push(nodeInfo[1]); // add server-id only if not already present					
 			}				
 			nodes.update({id: nodeInfo[1], label: 'Pi #' + nodeInfo[1], group: "server",
-				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			
 		}
 	}
@@ -170,6 +170,10 @@ function drawTopology(data){
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
     });
+    
+    network.on("selectNode", function (params) {
+        console.log('selectNode Event:', params);
+    });
 }
 
 function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
@@ -203,31 +207,33 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  
 	  // add additional information
 	  // min-/ max-Bitrate
-	  $("#legendContainer").append('<p></p>');
-	  $("#legendContainer").append('<p>min bitrate: ' + bitrateBounds[0] +'[kbits]</p>');
-	  $("#legendContainer").append('<p>max bitrate: ' + bitrateBounds[1] +'[kbits]</p>');
-	  
+	  var bitrateInfo = '<p></p><ul class="list-group">' +
+							'<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0]+ '[kbits]</li>' +
+							'<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbits]</li>' +
+						'</ul>';	
+	   $("#legendContainer").append(bitrateInfo);
+	   
 	  // add group information
 	  var groupsInfo = "";
 	  
 	  // for every server
 	  var i = 1;
 	  for(var key in groups){
-		  groupsInfo += '<h3 id="grpHeader' + key +'">Group ' + (i++) + '</h3>' +
+		  groupsInfo += '<h3 server="' + key +'" id="grpHeader' + key +'">Group ' + (i++) + '</h3>' +
 					'<div>' +
 						'<p>' + key + ',' + groups[key] + '</p>' +
 					'</div>';
 	  }
 	  
 	  $("#legendContainer").append('<p></p><div id="grpAccordion">' + groupsInfo + '</div>');
-	  for(var key in groups){
-		  console.log(key);
-		  $('#grpHeader' + key).click(function(){
-			  console.log(key + " clicked!");
-			  network.selectNodes($.merge([key],groups[key]));
-		  });
-	  }
 	  $("#grpAccordion").accordion();
+	  
+	    for(var key in groups){
+		  $('#grpHeader' + key).bind('click', function (e) {
+			  var server = $(e.target).attr("server");
+			 network.selectNodes($.merge([server],groups[server]));
+			});
+	  }
 }
     
 // checks if a given string starts with given prefix
