@@ -152,7 +152,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
+	drawLegend(network,jQuery.extend({},options),numberOfNodes,servers,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -170,13 +170,9 @@ function drawTopology(data){
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
     });
-    
-    network.on("selectNode", function (params) {
-        console.log('selectNode Event:', params);
-    });
 }
 
-function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
+function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
@@ -190,7 +186,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      var serverCount = Object.keys(groups).length;
+      var serverCount = servers.length;
       var clientCount = 0;
       for(var key in groups){
 		 clientCount += groups[key].length;
@@ -219,7 +215,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  // for every server
 	  var i = 1;
 	  for(var key in groups){
-		  groupsInfo += '<h3 server="' + key +'" id="grpHeader' + key +'">Group ' + (i++) + '</h3>' +
+		  groupsInfo += '<h3 server="' + key +'" id="grpHeader' + key +'" style="color: ' + colors[$.inArray(key,servers)] +'">Group ' + (i++) + '</h3>' +
 					'<div>' +
 						'<p>' + key + ',' + groups[key] + '</p>' +
 					'</div>';
