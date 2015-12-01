@@ -1,6 +1,15 @@
- var topologyFilePath = "pi-network/generated_network_top.txt";
- var jsonDirectory = "pi-network/";
+ var topologyFilePath = "network/generated_network_top.txt";
+ var jsonDirectory = "network/";
  var statusUpdateIntervals = {};
+ var images = {
+		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
+		server: ["res/img/server.svg","res/img/serverGrey.svg"],
+		client: ["res/img/client.svg","res/img/clientGrey.svg"]
+	 };
+ var highlightActive = false;
+ 	// colors of BYR color wheel, order changed
+	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
+		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
  
  $(document).ready(function(){
 	    // hide javaScriptAlert - div, proof that js works
@@ -25,9 +34,6 @@
 function drawTopology(data){
 	var nodes = new vis.DataSet();
 	var edges = new vis.DataSet();  
-	// colors of BYR color wheel, order changed
-	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
-		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
 		
 	// process file-data
 	// seperate lines
@@ -37,7 +43,11 @@ function drawTopology(data){
 	var part = -1; 
 	var edgeInfo;  // holds information about a single edge
 	var nodeInfo;  // holds information about a single node
-	var servers=[]; // array containing the ids of all servers
+	var servers = []; // array containing the ids of all servers
+	var groups = {}; // contains server -> clients entries
+	var numberOfNodes = 0; // total number of nodes
+	// bitrateBounds[lower_bound, upper_bound]
+	var bitrateBounds=[Number.MAX_VALUE, Number.MIN_VALUE];
 	
 	for(var index in lines){
 		if(stringStartsWith(lines[index],"#")) {
@@ -47,9 +57,10 @@ function drawTopology(data){
 			
 		if(part == 0){
 			// lines[index] contains number of nodes (assumed correct everytime)
-			for(i = 0; i < lines[index]; i++){
-			  nodes.add({id: i, group: "node", shadow: true, 
-				  label: 'Pi #' + i});
+			numberOfNodes = lines[index];
+			for(i = 0; i < numberOfNodes; i++){
+			  nodes.add({id: i, group: "router", shadow: true,  color: '#3c87eb',  
+				  label: 'Pi #' + i, shape: "image", image: images["router"][0],font: "20px arial black"});
 			}
 		}else if(part == 1){
 			// add edges
@@ -58,7 +69,12 @@ function drawTopology(data){
 
 			// add edge first two entries ... connected nodes ( a -> b)
 			edges.add({id: edgeInfo[0] + '-'+ edgeInfo[1], from: edgeInfo[0], 
-				to: edgeInfo[1], title: getEdgeInfoHtml(edgeInfo), shadow: true});
+				to: edgeInfo[1], value: ((edgeInfo[2], edgeInfo[3]) / 2), 
+				title: getEdgeInfoHtml(edgeInfo), shadow: true});
+				
+			// update bitrateBounds statistic
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[2]),Math.max(bitrateBounds[1],edgeInfo[2])];
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[3]),Math.max(bitrateBounds[1],edgeInfo[3])];
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -68,18 +84,24 @@ function drawTopology(data){
 			nodeInfo = lines[index].split(",");
 			
 			// images from GPL licensed "Tango Desktop Project" (tango.freedesktop.org)
+			// update groups	 
+			if(groups[nodeInfo[1]] === undefined){
+				groups[nodeInfo[1]] = [nodeInfo[0]];
+			} else {
+				$.merge(groups[nodeInfo[1]],[nodeInfo[0]]);
+			}
+
 			// nodeInfo[1] ... id of server - node
 			if($.inArray(nodeInfo[1],servers)<0){
-				servers.push(nodeInfo[1]); // server-id only, if not already present					
+				servers.push(nodeInfo[1]); // add server-id only if not already present					
 			}				
 			nodes.update({id: nodeInfo[1], label: 'Pi #' + nodeInfo[1], group: "server",
-				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
-
-			// nodeInfo[0] ... id of client - node
+				 shadow: true, shape: "image", image: images["server"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+			
+			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, font: "14px arial " + colors[$.inArray(nodeInfo[1],servers)]});
-				
-	
+				 shadow: true, shape: "image", image: images["client"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+			
 		}
 	}
 	
@@ -97,26 +119,15 @@ function drawTopology(data){
 	var options = {
 		// specify randomseed => network is the same at every startup
 		autoResize: false,
+		height: '100%',
 		layout:{randomSeed: seed}, 
-		groups: { // define common properties of certain groups of nodes
-			node: {
-				shape: "image", 
-				image: "blueRouter.svg",
-				physics: true
-			},
-			server: {
-				shape: "image",
-				image: "server.svg",
-				physics: true
-			},
-			client: {
-				shape: "image",
-				image: "client.svg",
-				physics: true
-			}
+		edges: {
+			scaling: {max: 5} 
 		},
 		interaction: {
 			hover: true,
+			selectConnectedEdges: false,
+			hoverConnectedEdges: false,
 			tooltipDelay: 300
 			},
 		physics: {
@@ -133,7 +144,7 @@ function drawTopology(data){
 	
 	// draw graph
 	var network = new vis.Network(container, data, options);
-	drawLegend(options); 
+	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -151,29 +162,140 @@ function drawTopology(data){
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
     });
+    
+    network.on("click", function (params){
+		highlightSelectedNodes(network);
+	});
 }
 
-function drawLegend(options){
-	  // draw legend
+function highlightSelectedNodes(network){
+	var nodes = network.body.data.nodes;
+	var allNodes = nodes.get({returnType:"Object"});
+	var selectedNodeIds = network.getSelectedNodes();
+	
+	if (highlightActive === true) {
+		// reset all nodes / restore 'normal' view 
+		for (var nodeId in allNodes) {		
+			// affect edge-color inderectly by setting node-color
+			allNodes[nodeId].color = '#3c87eb';
+        
+			// show label
+			if (allNodes[nodeId].hiddenLabel !== undefined) {
+				allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+				allNodes[nodeId].hiddenLabel = undefined;
+			}
+        
+			// swap in normal (colored) images
+			allNodes[nodeId].image = images[allNodes[nodeId].group][0];
+		}
+		highlightActive = false
+	}
+	 
+	
+	// if something is selected -> highlight it
+    if (selectedNodeIds.length > 0) {
+		highlightActive = true;
+
+		// mark all non-selected nodes as hard to read.
+		for (var nodeId in allNodes) {
+			// affect edge-color inderectly by setting node-color
+			// to affect every edge, every node-color must be changed
+			allNodes[nodeId].color = 'rgba(200,200,200,0.5)';
+        
+			// do not grey out selected Nodes
+			if($.inArray(nodeId,selectedNodeIds)>=0) continue;			
+        
+			// hide label
+			if (allNodes[nodeId].hiddenLabel === undefined) {
+				allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+				allNodes[nodeId].label = undefined;
+			}
+        
+			// swap in greyed-out images
+			allNodes[nodeId].image = images[allNodes[nodeId].group][1];
+		}
+    }  
+
+
+    // transform the object into an array
+    // and write it back
+    var updateArray = [];
+    for (nodeId in allNodes) {
+		if (allNodes.hasOwnProperty(nodeId)) {
+			updateArray.push(allNodes[nodeId]);
+		}
+    }
+    nodes.update(updateArray);
+}
+
+
+function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
+	  $('#legendContainer').append('<ul id="legendList" class="list-group">' +
+										'<li id="legendGraph" class="noPadding list-group-item"></li>' +
+									'</ul>');
+	  
 	  var nodes = new vis.DataSet();
 	  var edges = new vis.DataSet();
 	    
-      var container = document.getElementById('legendContainer');
+      var container = document.getElementById('legendGraph');
       // coordinates originating in midpoint
       var x = container.clientWidth / 2;  
       var y = container.clientHeight / 2; 
       var step = 100;
-      
+  
+      options.height = '300px'; // limit height, make room for additional information
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      nodes.add({id: 1, x: x, y: y, label: 'Router', group: 'node', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server', group: 'server', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client', group: 'client', fixed: true, shadow: true,  physics:false});
+      var serverCount = Object.keys(groups).length;
+      var clientCount = 0;
+      for(var key in groups){
+		 clientCount += groups[key].length;
+	  }
+      
+      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (numberOfNodes - (serverCount + clientCount)) + ')',
+			shape: "image", image: images["router"][0], fixed: true, shadow: true, physics:false});
+      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + serverCount + ')', 
+				shape: "image", image: images["server"][0], fixed: true, shadow: true, physics:false});
+      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + clientCount + ')',
+		    shape: "image", image: images["client"][0], fixed: true, shadow: true,  physics:false});
       
       var data = {nodes: nodes,edges: edges};
       // draw legend
-	  var network = new vis.Network(container, data, options);
+	  var legend = new vis.Network(container, data, options);
+	  
+	  // add additional information
+	  // min-/ max-Bitrate
+	  $('#legendList').append('<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0] + '[kbits]</li>');
+	  $('#legendList').append('<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbits]</li>');
+	   
+	  // add group information
+	  var groupsInfo = "";
+	  
+	  // for every server (group-leader)
+	  var i = 0;
+	  var keys = Object.keys(groups).reverse();
+	  keys.forEach(function(entry) {
+			groupsInfo += '<h3 id="grpHeader' + entry +'" style="color: ' + colors[i] +'">Group ' + (++i) + '</h3>' +
+					'<div>' +
+						'<p>' + entry + ',' + groups[entry] + '</p>' +
+					'</div>';
+	  });
+	  
+	  $("#legendList").append('<li class="noPadding list-group-item"><div id="grpAccordion">' + groupsInfo + '</div></li>');
+	  $("#grpAccordion").accordion();
+	  
+	   keys.forEach(function(entry) {
+			 $('#grpHeader' + entry).bind('click', function (e) {
+				network.selectNodes($.merge([entry],groups[entry]));
+				// highlight selected group-nodes
+				highlightSelectedNodes(network);
+			});
+	  });
+	  
+	  // add random-seed btn
+	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
+			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></li>');
 }
     
 // checks if a given string starts with given prefix
@@ -181,36 +303,39 @@ function stringStartsWith(string, prefix) {
 	return string.slice(0,prefix.length) == prefix;
 } 
 
-//show tooltip for edge ?
 
 // show tooltip for node
 function showNodeCooltip(id,network){
 	if($("#" + id).length > 0) return; // only one per id at any time
 	
-	
-	
 	// calculate screen position	
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
 	// apply horizontal correction for legend (legend is 120px wide)
-	pos.x += 120;
+	pos.x += 150;
 	
-	var test = '<div id="' + id +'" title="Pi #' + id +'"><div class="popover-content"></div></div>';
-		$(test).appendTo("body");
-		$("#" + id).dialog({position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }});
-		
+	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
+	$("body").append('<div id="' + id + '" class="cooltip-content" title="'+ nodeName + '"></div>');
+	$('#' + id).dialog({
+		resize: function(event, ui) { $(this).css("width","100%");},
+		position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }});
+	$('#' + id).css("height", "150px");
+	$('html body div.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ui-front.ui-draggable.ui-resizable div.ui-dialog-titlebar.ui-widget-header.ui-corner-all.ui-helper-clearfix.ui-draggable-handle').css("background-color","#43464b");
+
 	
 	// add cooltip
-	/*var coolTip = '<div id="' + id + '" style="position: absolute; top:' + pos.y +'px; left:' + pos.x + 'px; z-index: 11;"  class="cooltip popover right">' +
+	/*var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
+	var coolTip = '<div id="' + id + '" style="position: absolute; top:' + pos.y +'px; left:' + pos.x + 'px; z-index: 11;"  class="cooltip popover right">' +
 				'<h3 class="popover-title">' +
 					'<button id="pin' + id + '" type="button" class="pin-btn btn btn-default btn-xs">' + 
 						'<span class="glyphicon glyphicon-pushpin" aria-hidden="true"></span>' +
 					'</button>' +
-					 '<span>' + network.body.nodes[id].options.label +'</span>' +
+					 '<span>' + nodeName +'</span>' +
 				'</h3>' +
 			'<div class="popover-content">' +
 			'</div>' +
-	'</div>';*/
+	'</div>';
+	*/
 	
 	// update node-status the first time
 	getNodeStatus(id);
@@ -238,6 +363,7 @@ function showNodeCooltip(id,network){
 	
 	// make coolTip draggable (thx jqueryUI)
 	//$("#" + id).draggable();
+	
 } 
 
 function hideNodeCooltip(id){
@@ -247,7 +373,7 @@ function hideNodeCooltip(id){
 		// shut down status - refresh
 		clearInterval(statusUpdateIntervals[id]);
 		// Only remove non-pinned cooltips
-		$("#" + id).fadeOut( function() { $(this).remove(); });
+		//$("#" + id).fadeOut( function() { $(this).remove(); });
 	}
 }
 
@@ -258,7 +384,7 @@ function getNodeStatus(id){
      // get file directly
      $.getJSON(jsonFilePath, function(jsonData) {
 			// update content
-			$("#" + id + '> div.popover-content:first').html(buildInfoTable(jsonData));
+			$("#" + id).html(buildInfoTable(jsonData));
      });
 }
 
@@ -275,31 +401,12 @@ function buildInfoTable(jsonData){
 								'<td>' + jsonData.Load + '</td>' +
 							'</tr>' +
 							'<tr>' +
-								'<th>cpu 0</th>' +
-								'<td>' + parseInt(jsonData.cpu0freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>cpu 1</th>' +
-								'<td>' + parseInt(jsonData.cpu1freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
 								'<th>ram</th>' +
 								'<td>' +
 									'<div class="progress">' +
 										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ ramUsagePercent +
 												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ ramUsagePercent +'%">' +
 												ramUsagePercent +'%' +
-											'</div>' +
-									 '</div>' +
-								'</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>hdd</th>' +
-								'<td>' +
-									'<div class="progress">' +
-										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ hddUsagePercent +
-												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ hddUsagePercent +'%">' +
-												hddUsagePercent +'%' +
 											'</div>' +
 									 '</div>' +
 								'</td>' +
@@ -331,6 +438,25 @@ function buildInfoTable(jsonData){
 							'<tr>' +
 								'<th>HDD temp</th>' +
 								'<td>' + jsonData.hddtemp.replace("°C","")+ ' [°C]</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>hdd</th>' +
+								'<td>' +
+									'<div class="progress">' +
+										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ hddUsagePercent +
+												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ hddUsagePercent +'%">' +
+												hddUsagePercent +'%' +
+											'</div>' +
+									 '</div>' +
+								'</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>cpu 0</th>' +
+								'<td>' + parseInt(jsonData.cpu0freq)/1000 +  ' [MHz]</td>' +
+							'</tr>' +
+							'<tr>' +
+								'<th>cpu 1</th>' +
+								'<td>' + parseInt(jsonData.cpu1freq)/1000 +  ' [MHz]</td>' +
 							'</tr>' +
 							'<tr>' +
 								'<th>Uptime</th>' +
@@ -371,18 +497,5 @@ function getUrlVar(name){
 	if(param === null) return undefined;
 	else return param[1];
 }
-
-
-
-
-
-	// update value/(width) of edges in normalized fashion
-	// already performed by vis.js
-	/*var intervalSize = bitrateBounds[1] - bitrateBounds[0];
-	var edgeIds = edges.getIds();
-	for(var id in edgeIds){
-		var normalizedValue = (edges.get(edgeIds[id]).value/intervalSize)*10;
-		edges.update({id: edgeIds[id], value: normalizedValue});
-	}*
  
 
