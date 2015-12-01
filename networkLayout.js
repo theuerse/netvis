@@ -1,6 +1,12 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
  var statusUpdateIntervals = {};
+ var images = {
+		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
+		server: ["res/img/server.svg","res/img/serverGrey.svg"],
+		client: ["res/img/client.svg","res/img/clientGrey.svg"]
+	 };
+ var highlightActive = false;
  	// colors of BYR color wheel, order changed
 	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
 		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
@@ -53,8 +59,8 @@ function drawTopology(data){
 			// lines[index] contains number of nodes (assumed correct everytime)
 			numberOfNodes = lines[index];
 			for(i = 0; i < numberOfNodes; i++){
-			  nodes.add({id: i, group: "node", shadow: true, 
-				  label: 'Pi #' + i, font: "20px arial black"});
+			  nodes.add({id: i, group: "router", shadow: true,  color: '#3c87eb',  
+				  label: 'Pi #' + i, shape: "image", image: images["router"][0],font: "20px arial black"});
 			}
 		}else if(part == 1){
 			// add edges
@@ -90,11 +96,11 @@ function drawTopology(data){
 				servers.push(nodeInfo[1]); // add server-id only if not already present					
 			}				
 			nodes.update({id: nodeInfo[1], label: 'Pi #' + nodeInfo[1], group: "server",
-				 shadow: true, font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, shape: "image", image: images["server"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, shape: "image", image: images["client"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			
 		}
 	}
@@ -115,25 +121,10 @@ function drawTopology(data){
 		autoResize: false,
 		height: '100%',
 		layout:{randomSeed: seed}, 
-		groups: { // define common properties of certain groups of nodes
-			node: {
-				shape: "image", 
-				image: "res/img/blueRouter.svg",
-				physics: true
-			},
-			server: {
-				shape: "image",
-				image: "res/img/server.svg",
-				physics: true
-			},
-			client: {
-				shape: "image",
-				image: "res/img/client.svg",
-				physics: true
-			}
-		},
 		interaction: {
 			hover: true,
+			selectConnectedEdges: false,
+			hoverConnectedEdges: false,
 			tooltipDelay: 300
 			},
 		physics: {
@@ -168,7 +159,72 @@ function drawTopology(data){
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
     });
+    
+    network.on("click", function (params){
+		highlightSelectedNodes(network);
+	});
 }
+
+function highlightSelectedNodes(network){
+	var nodes = network.body.data.nodes;
+	var allNodes = nodes.get({returnType:"Object"});
+	var selectedNodeIds = network.getSelectedNodes();
+	
+	if (highlightActive === true) {
+		// reset all nodes / restore 'normal' view 
+		for (var nodeId in allNodes) {		
+			// affect edge-color inderectly by setting node-color
+			allNodes[nodeId].color = '#3c87eb';
+        
+			// show label
+			if (allNodes[nodeId].hiddenLabel !== undefined) {
+				allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+				allNodes[nodeId].hiddenLabel = undefined;
+			}
+        
+			// swap in normal (colored) images
+			allNodes[nodeId].image = images[allNodes[nodeId].group][0];
+		}
+		highlightActive = false
+	}
+	 
+	
+	// if something is selected -> highlight it
+    if (selectedNodeIds.length > 0) {
+		highlightActive = true;
+
+		// mark all non-selected nodes as hard to read.
+		for (var nodeId in allNodes) {
+			// affect edge-color inderectly by setting node-color
+			// to affect every edge, every node-color must be changed
+			allNodes[nodeId].color = 'rgba(200,200,200,0.5)';
+        
+			// do not grey out selected Nodes
+			if($.inArray(nodeId,selectedNodeIds)>=0) continue;			
+        
+			// hide label
+			if (allNodes[nodeId].hiddenLabel === undefined) {
+				allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+				allNodes[nodeId].label = undefined;
+			}
+        
+			// swap in greyed-out images
+			allNodes[nodeId].image = images[allNodes[nodeId].group][1];
+		}
+    }  
+
+
+    // transform the object into an array
+    // and write it back
+    var updateArray = [];
+    for (nodeId in allNodes) {
+		if (allNodes.hasOwnProperty(nodeId)) {
+			updateArray.push(allNodes[nodeId]);
+		}
+    }
+    nodes.update(updateArray);
+}
+
 
 function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  $('#legendContainer').append('<ul id="legendList" class="list-group">' +
@@ -194,10 +250,12 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 		 clientCount += groups[key].length;
 	  }
       
-      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (numberOfNodes - (serverCount + clientCount)) + ')'
-		  , group: 'node', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + serverCount + ')', group: 'server', fixed: true, shadow: true, physics:false});
-      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + clientCount + ')', group: 'client', fixed: true, shadow: true,  physics:false});
+      nodes.add({id: 1, x: x, y: y, label: 'Router' + ' (' + (numberOfNodes - (serverCount + clientCount)) + ')',
+			shape: "image", image: images["router"][0], fixed: true, shadow: true, physics:false});
+      nodes.add({id: 2, x: x, y: y + step, label: 'Router + Server' + ' (' + serverCount + ')', 
+				shape: "image", image: images["server"][0], fixed: true, shadow: true, physics:false});
+      nodes.add({id: 3, x: x, y: y + 2 * step, label: 'Router + Client' + ' (' + clientCount + ')',
+		    shape: "image", image: images["client"][0], fixed: true, shadow: true,  physics:false});
       
       var data = {nodes: nodes,edges: edges};
       // draw legend
@@ -227,11 +285,10 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	   keys.forEach(function(entry) {
 			 $('#grpHeader' + entry).bind('click', function (e) {
 				network.selectNodes($.merge([entry],groups[entry]));
+				// highlight selected group-nodes
+				highlightSelectedNodes(network);
 			});
 	  });
-	  
-	  // select first group
-	  if(keys.length > 0) network.selectNodes($.merge([keys[0]],groups[keys[0]]));
 	  
 	  // add random-seed btn
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
@@ -255,12 +312,13 @@ function showNodeCooltip(id,network){
 	pos.x += 120;
 	
 	// add cooltip
+	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
 	var coolTip = '<div id="' + id + '" style="position: absolute; top:' + pos.y +'px; left:' + pos.x + 'px; z-index: 11;"  class="cooltip popover right">' +
 				'<h3 class="popover-title">' +
 					'<button id="pin' + id + '" type="button" class="pin-btn btn btn-default btn-xs">' + 
 						'<span class="glyphicon glyphicon-pushpin" aria-hidden="true"></span>' +
 					'</button>' +
-					 '<span>' + network.body.nodes[id].options.label +'</span>' +
+					 '<span>' + nodeName +'</span>' +
 				'</h3>' +
 			'<div class="popover-content">' +
 			'</div>' +
