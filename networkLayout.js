@@ -69,7 +69,7 @@ function drawTopology(data){
 
 			// add edge first two entries ... connected nodes ( a -> b)
 			edges.add({id: edgeInfo[0] + '-'+ edgeInfo[1], from: edgeInfo[0], 
-				to: edgeInfo[1], value: Math.max(edgeInfo[2], edgeInfo[3]), 
+				to: edgeInfo[1], value: ((edgeInfo[2], edgeInfo[3]) / 2), 
 				title: getEdgeInfoHtml(edgeInfo), shadow: true});
 				
 			// update bitrateBounds statistic
@@ -121,6 +121,9 @@ function drawTopology(data){
 		autoResize: false,
 		height: '100%',
 		layout:{randomSeed: seed}, 
+		edges: {
+			scaling: {max: 5} 
+		},
 		interaction: {
 			hover: true,
 			selectConnectedEdges: false,
