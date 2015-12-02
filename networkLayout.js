@@ -80,7 +80,6 @@ function drawTopology(data){
 			// and relationship type color (client and server have matching colors, for now)
 			// lines[index] contains properties (Client, Server)
 			// e.g. 4,18   --> 4 is a client of the server 18
-			// console.log(lines[index]);
 			nodeInfo = lines[index].split(",");
 			
 			// images from GPL licensed "Tango Desktop Project" (tango.freedesktop.org)
@@ -312,20 +311,39 @@ function showNodeCooltip(id,network){
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
 	// apply horizontal correction for legend (legend is 120px wide)
-	pos.x += 120;
+	pos.x += 150;
 	
-	// add cooltip
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
-	var coolTip = '<div id="' + id + '" style="position: absolute; top:' + pos.y +'px; left:' + pos.x + 'px; z-index: 11;"  class="cooltip popover right">' +
-				'<h3 class="popover-title">' +
-					'<button id="pin' + id + '" type="button" class="pin-btn btn btn-default btn-xs">' + 
-						'<span class="glyphicon glyphicon-pushpin" aria-hidden="true"></span>' +
-					'</button>' +
-					 '<span>' + nodeName +'</span>' +
-				'</h3>' +
-			'<div class="popover-content">' +
-			'</div>' +
-	'</div>';
+	$("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
+	$('#' + id).dialog({
+		beforeClose: function(event, ui){
+			widget = $(this).dialog("widget");
+			if($("#pin"+id +'.active').length == 0){
+				$("button.ui-dialog-titlebar-close", widget).css("border", "2px solid green");
+			}else {
+				$("button.ui-dialog-titlebar-close", widget).css("border", "1px solid #999");
+			}
+			return false;
+		},
+		create: function(event, ui) { 
+			widget = $(this).dialog("widget");
+			widget.mouseleave(function(){hideNodeCooltip(id);});
+			$("button:first",widget).attr('id','pin'+id);
+			$(".ui-dialog-titlebar-close span:first", widget)
+				.removeClass("ui-icon-closethick")
+				.addClass("ui-icon-pin-s"); // use pin-icon
+			$(".ui-dialog-titlebar-close span:last", widget).remove(); //remove unused span
+			$("button.ui-dialog-titlebar-close", widget).attr("title", "(un-)/pin");
+		},
+		show: {
+			effect: 'fade',
+			duration: 500
+		},
+		resize: function(event, ui) { $(this).css("width","100%");},
+		position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
+	});
+	// set default-height for Cooltip
+	$("#"+id).css("height","130px");
 	
 	// update node-status the first time
 	getNodeStatus(id);
@@ -333,36 +351,22 @@ function showNodeCooltip(id,network){
 	// update status in one second intervals (using local cache)
 	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, 1000);
 	
-	// add cooltip to DOM tree and fade it in
-	$(coolTip).hide().appendTo("body").fadeIn();
-	
 	// 'pin'-btn 'pressed' -> active -> coolTip stays
 	// 'pin'-btn 'released' -> not active -> coolTip disappears on 
 	// mouseleave
 	$("#pin" + id).click(function(){
 		$(this).toggleClass("active");
 	});
-	
-	// close coolTip at mouseleave
-	$("#" + id).mouseleave(function(){
-		// only act, when target is fully visible (fadeIn finished)
-		if($("#" + id).css('opacity') < 1) return;
-		
-		hideNodeCooltip(id);
-	});
-	
-	// make coolTip draggable (thx jqueryUI)
-	$("#" + id).draggable();
 } 
 
 function hideNodeCooltip(id){
 	// "h3 button.active" -> select all 'button's which are children of 'h3's
 	// and are member of class 'active'
-	if($("#" + id +" h3 button.active").length == 0){
+	if($("#pin" + id + '.active').length == 0){
 		// shut down status - refresh
 		clearInterval(statusUpdateIntervals[id]);
 		// Only remove non-pinned cooltips
-		$("#" + id).fadeOut( function() { $(this).remove(); });
+		$("#" + id).parent().hide(function(){$("#" + id).remove();});
 	}
 }
 
@@ -373,7 +377,7 @@ function getNodeStatus(id){
      // get file directly
      $.getJSON(jsonFilePath, function(jsonData) {
 			// update content
-			$("#" + id + '> div.popover-content:first').html(buildInfoTable(jsonData));
+			$("#" + id).html(buildInfoTable(jsonData));
      });
 }
 
