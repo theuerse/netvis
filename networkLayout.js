@@ -338,7 +338,7 @@ function showNodeCooltip(id,network){
 	// calculate screen position	
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
-	// apply horizontal correction for legend (legend is 120px wide)
+	// apply horizontal correction for legend (legend is 150px wide)
 	pos.x += 150;
 	
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
@@ -426,7 +426,7 @@ function buildInfoTable(jsonData){
 							'<tr>' +
 								'<th>ram</th>' +
 								'<td>' +  
-									'<progress value="'+ ramUsagePercent +'" max="100">'+ ramUsagePercent + '%</progress>' +
+									'<meter max="100" value="'+ ramUsagePercent +'">'+ ramUsagePercent + '%</meter>' +
 									ramUsagePercent + '%' +
 								'</td>' +
 							'</tr>' +
@@ -461,7 +461,7 @@ function buildInfoTable(jsonData){
 							'<tr>' +
 								'<th>hdd</th>' +
 								'<td>' +
-									'<progress value="'+ hddUsagePercent +'" max="100">'+ hddUsagePercent + '%</progress>' +
+									'<meter max="100" value="'+ hddUsagePercent +'">'+ hddUsagePercent + '%</meter>' +
 									hddUsagePercent + '%' +
 								'</td>' +
 							'</tr>' +

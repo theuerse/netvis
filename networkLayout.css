@@ -56,7 +56,7 @@ html body div#graphContainer div.vis-network div.vis-network-tooltip div.popover
 	display: inline;
 }
 
-progress {
+meter {
 	vertical-align: middle;
 	margin-right: 5px;
 	width: 60%;
