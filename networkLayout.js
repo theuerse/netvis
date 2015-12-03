@@ -47,7 +47,7 @@ function drawTopology(data){
 	var groups = {}; // contains server -> clients entries
 	var numberOfNodes = 0; // total number of nodes
 	// bitrateBounds[lower_bound, upper_bound]
-	var bitrateBounds=[Number.MAX_VALUE, Number.MIN_VALUE];
+	var bitrateBounds = getMinMaxBandwidth(lines);
 	
 	for(var index in lines){
 		if(stringStartsWith(lines[index],"#")) {
@@ -59,7 +59,7 @@ function drawTopology(data){
 			// lines[index] contains number of nodes (assumed correct everytime)
 			numberOfNodes = lines[index];
 			for(i = 0; i < numberOfNodes; i++){
-			  nodes.add({id: i, group: "router", shadow: true,  color: '#3c87eb',  
+			  nodes.add({id: i, group: "router", shadow: true,  color: '#3c87eb',
 				  label: 'Pi #' + i, shape: "image", image: images["router"][0],font: "20px arial black"});
 			}
 		}else if(part == 1){
@@ -69,12 +69,8 @@ function drawTopology(data){
 
 			// add edge first two entries ... connected nodes ( a -> b)
 			edges.add({id: edgeInfo[0] + '-'+ edgeInfo[1], from: edgeInfo[0], 
-				to: edgeInfo[1], value: ((edgeInfo[2], edgeInfo[3]) / 2), 
+				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), 
 				title: getEdgeInfoHtml(edgeInfo), shadow: true});
-				
-			// update bitrateBounds statistic
-			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[2]),Math.max(bitrateBounds[1],edgeInfo[2])];
-			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[3]),Math.max(bitrateBounds[1],edgeInfo[3])];
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -121,7 +117,7 @@ function drawTopology(data){
 		height: '100%',
 		layout:{randomSeed: seed}, 
 		edges: {
-			scaling: {max: 5} 
+			hoverWidth: 0
 		},
 		interaction: {
 			hover: true,
@@ -165,6 +161,29 @@ function drawTopology(data){
     network.on("click", function (params){
 		highlightSelectedNodes(network);
 	});
+}
+
+// Runs through edge-entries one time, determining the 
+// minimal / maximal Bandwith
+function getMinMaxBandwidth(lines){
+	var part = -1;
+	var bitrateBounds = [Number.MAX_VALUE, Number.MIN_VALUE];
+	for(var index in lines){
+		if(stringStartsWith(lines[index],"#")) {
+			part = part + 1;
+			continue;
+		}
+			
+		if(part == 1){
+			// lines[index] contains edge-information
+			edgeInfo = lines[index].split(",");
+			// update bitrateBounds statistic
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[2]),Math.max(bitrateBounds[1],edgeInfo[2])];
+			bitrateBounds = [Math.min(bitrateBounds[0],edgeInfo[3]),Math.max(bitrateBounds[1],edgeInfo[3])];
+		}
+		else if(part == 2) break;
+	}
+	return bitrateBounds;
 }
 
 function highlightSelectedNodes(network){
