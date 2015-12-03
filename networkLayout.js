@@ -416,13 +416,9 @@ function buildInfoTable(jsonData){
 							'</tr>' +
 							'<tr>' +
 								'<th>ram</th>' +
-								'<td>' +
-									'<div class="progress">' +
-										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ ramUsagePercent +
-												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ ramUsagePercent +'%">' +
-												ramUsagePercent +'%' +
-											'</div>' +
-									 '</div>' +
+								'<td>' +  
+									'<progress value="'+ ramUsagePercent +'" max="100">'+ ramUsagePercent + '%</progress>' +
+									ramUsagePercent + '%' +
 								'</td>' +
 							'</tr>' +
 							'<tr>' +
@@ -456,12 +452,8 @@ function buildInfoTable(jsonData){
 							'<tr>' +
 								'<th>hdd</th>' +
 								'<td>' +
-									'<div class="progress">' +
-										 '<div class="progress-bar" role="progressbar" aria-valuenow="'+ hddUsagePercent +
-												'" aria-valuemin="0" aria-valuemax="100" style="color: black; text-shadow: 0 0 2px #fff;width:'+ hddUsagePercent +'%">' +
-												hddUsagePercent +'%' +
-											'</div>' +
-									 '</div>' +
+									'<progress value="'+ hddUsagePercent +'" max="100">'+ hddUsagePercent + '%</progress>' +
+									hddUsagePercent + '%' +
 								'</td>' +
 							'</tr>' +
 							'<tr>' +
