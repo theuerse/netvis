@@ -314,6 +314,7 @@ function showNodeCooltip(id,network){
 	pos.x += 150;
 	
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
+	var nodeColor = network.body.nodes[id].options.font.color;
 	$("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
 	$('#' + id).dialog({
 		beforeClose: function(event, ui){
@@ -334,6 +335,7 @@ function showNodeCooltip(id,network){
 				.addClass("ui-icon-pin-s"); // use pin-icon
 			$(".ui-dialog-titlebar-close span:last", widget).remove(); //remove unused span
 			$("button.ui-dialog-titlebar-close", widget).attr("title", "(un-)/pin");
+			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
 		},
 		show: {
 			effect: 'fade',
