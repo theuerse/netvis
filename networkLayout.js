@@ -161,6 +161,15 @@ function drawTopology(data){
     network.on("click", function (params){
 		highlightSelectedNodes(network);
 	});
+	
+	 $(window).resize(function(){
+			var options = {offset: {x:0,y:0},
+				duration: 1000,
+				easingFunction: "easeInOutQuad"
+		};
+		network.redraw();
+		network.fit({animation:options});
+		});
 }
 
 // Runs through edge-entries one time, determining the 
