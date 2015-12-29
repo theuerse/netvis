@@ -159,7 +159,9 @@ function drawTopology(data){
     });
     
     network.on("click", function (params){
-		highlightSelectedNodes(network);
+		if(params.nodes.length == 0){
+			highlightSelectedNodes(network); // perform group de-selection
+		}
 	});
 	
 	 $(window).resize(function(){
