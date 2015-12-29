@@ -150,7 +150,7 @@ function drawTopology(data){
     
     // show cooltip when mouse enters/hovers node
      network.on("hoverNode", function (params) {
-        showNodeCooltip(params.node, network);
+        showNodeCooltip(params.node, network, false);
     });
     
     // hide cooltip when mouse leaves node
@@ -161,6 +161,9 @@ function drawTopology(data){
     network.on("click", function (params){
 		if(params.nodes.length == 0){
 			highlightSelectedNodes(network); // perform group de-selection
+		} else if(params.nodes.length == 1){
+			showNodeCooltip(params.nodes[0], network, true);
+			toggleCooltipPinned(params.nodes[0]);
 		}
 	});
 	
@@ -335,7 +338,7 @@ function stringStartsWith(string, prefix) {
 
 
 // show tooltip for node
-function showNodeCooltip(id,network){
+function showNodeCooltip(id,network,pinned){
 	if($("#" + id).length > 0) return; // only one per id at any time
 	
 	// calculate screen position	
@@ -349,12 +352,7 @@ function showNodeCooltip(id,network){
 	$("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
 	$('#' + id).dialog({
 		beforeClose: function(event, ui){
-			widget = $(this).dialog("widget");
-			if($("#pin"+id +'.active').length == 0){
-				$("button.ui-dialog-titlebar-close", widget).css("border", "2px solid green");
-			}else {
-				$("button.ui-dialog-titlebar-close", widget).css("border", "1px solid #999");
-			}
+			toggleCooltipPinned(id);
 			return false;
 		},
 		create: function(event, ui) { 
@@ -367,6 +365,12 @@ function showNodeCooltip(id,network){
 			$(".ui-dialog-titlebar-close span:last", widget).remove(); //remove unused span
 			$("button.ui-dialog-titlebar-close", widget).attr("title", "(un-)/pin");
 			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
+			
+			// pinned right from the start
+			if(pinned){
+				$("#pin" + id).addClass("active");
+				$("button.ui-dialog-titlebar-close", widget).css("border", "2px solid green");
+			}
 		},
 		show: {
 			effect: 'fade',
@@ -383,14 +387,21 @@ function showNodeCooltip(id,network){
 	
 	// update status in one second intervals (using local cache)
 	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, 1000);
-	
-	// 'pin'-btn 'pressed' -> active -> coolTip stays
-	// 'pin'-btn 'released' -> not active -> coolTip disappears on 
-	// mouseleave
-	$("#pin" + id).click(function(){
-		$(this).toggleClass("active");
-	});
 } 
+
+// 'pin'-btn is 'pressed' -> active -> coolTip stays
+// 'pin'-btn is 'released' -> not active -> coolTip disappears on 
+// mouseleave
+function toggleCooltipPinned(id){
+	var btn = $('#pin' + id + '.ui-button.ui-widget.ui-state-default.ui-corner-all.ui-button-icon-only.ui-dialog-titlebar-close');
+	if($("#pin"+id +'.active').length == 0){
+		btn.css("border", "2px solid green");
+   }
+	else{
+	   btn.css("border", "1px solid #999");
+   }
+   $("#pin"+id).toggleClass('active');
+}
 
 function hideNodeCooltip(id){
 	// "h3 button.active" -> select all 'button's which are children of 'h3's
