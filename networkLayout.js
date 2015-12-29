@@ -303,9 +303,10 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  var i = 0;
 	  var keys = Object.keys(groups).reverse();
 	  keys.forEach(function(entry) {
+		    var members = $.merge([entry],groups[entry]).sort(function(a,b){return a - b}); // sort as numbers
 			groupsInfo += '<h3 id="grpHeader' + entry +'" style="color: ' + colors[i] +'">Group ' + (++i) + '</h3>' +
 					'<div>' +
-						'<p>' + entry + ',' + groups[entry] + '</p>' +
+						'<p>' + members + '</p>' +
 					'</div>';
 	  });
 	  
