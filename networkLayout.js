@@ -379,8 +379,8 @@ function showNodeCooltip(id,network){
 	// update node-status the first time
 	getNodeStatus(id);
 	
-	// update status in one second intervals (using local cache)
-	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, 1000);
+	// update status in three second intervals (using local cache)
+	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, 3000);
 } 
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
