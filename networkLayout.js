@@ -1,6 +1,7 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
  var statusUpdateIntervals = {};
+ var cooltipDelays = {};
  var images = {
 		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
@@ -123,7 +124,7 @@ function drawTopology(data){
 			hover: true,
 			selectConnectedEdges: false,
 			hoverConnectedEdges: false,
-			tooltipDelay: 300
+			tooltipDelay: 400
 			},
 		physics: {
 			stabilization: {
@@ -148,14 +149,15 @@ function drawTopology(data){
 		network.setOptions(options);
 	});
     
-    // show cooltip when mouse enters/hovers node
+    // show cooltip when mouse enters/hovers node (+ 400[ms] delay)
      network.on("hoverNode", function (params) {
-        showNodeCooltip(params.node, network);
+		cooltipDelays[params.node] = setInterval(function(){showNodeCooltip(params.node, network)},400);
     });
     
     // hide cooltip when mouse leaves node
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
+        clearInterval(cooltipDelays[params.node]); // cancel cooltip
     });
     
     network.on("click", function (params){
