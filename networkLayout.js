@@ -2,6 +2,8 @@
  var jsonDirectory = "network/";
  var statusUpdateIntervals = {};
  var cooltipDelays = {};
+ var edgeToolTips = {};
+ var poppedUpEdges = [];
  var images = {
 		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
@@ -69,9 +71,10 @@ function drawTopology(data){
 			edgeInfo = lines[index].split(",");
 
 			// add edge first two entries ... connected nodes ( a -> b)
-			edges.add({id: edgeInfo[0] + '-'+ edgeInfo[1], from: edgeInfo[0], 
-				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), 
-				title: getEdgeInfoHtml(edgeInfo), shadow: true});
+			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
+			edges.add({id: edgeId, from: edgeInfo[0], 
+				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), shadow: true});
+			edgeToolTips[edgeId] = getEdgeInfoHtml(edgeInfo);
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -158,6 +161,28 @@ function drawTopology(data){
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
         clearInterval(cooltipDelays[params.node]); // cancel cooltip
+    });
+    
+    network.on("hoverEdge", function (params) {
+       var edges = network.body.data.edges;
+	   var edge = edges.get(params.edge);
+
+	   edge.title = edgeToolTips[params.edge];
+	   edges.update([edge]);
+	   poppedUpEdges.push(params.edge);
+    });
+    
+     network.on("hidePopup", function (params) {
+	   var edges = network.body.data.edges;
+	   
+	   var changedEdges = [];
+	   for(index in poppedUpEdges){
+		   var edge = edges.get(poppedUpEdges[index]);
+		   edge.title = null;
+		   changedEdges.push(edge);
+	   }
+	   edges.update(changedEdges);
+	   poppedUpEdges = [];
     });
     
     network.on("click", function (params){
