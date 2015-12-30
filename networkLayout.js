@@ -377,10 +377,10 @@ function showNodeCooltip(id,network){
 	$("#"+id).css("height","130px");
 	
 	// update node-status the first time
-	getNodeStatus(id);
+	getNodeStatus(network, id);
 	
 	// update status in three second intervals (using local cache)
-	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, 3000);
+	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(network, id)}, 3000);
 } 
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
@@ -409,13 +409,16 @@ function hideNodeCooltip(id){
 }
 
 // retrieve status-information about node
-function getNodeStatus(id){
+function getNodeStatus(network, id){
 	// asking for files directly is good for caching
 	var jsonFilePath = jsonDirectory + "PI" + id + ".json";
      // get file directly
      $.getJSON(jsonFilePath, function(jsonData) {
 			// update content
 			$("#" + id).html(buildInfoTable(jsonData));
+			$("#pin" + id).parent().children("span").html(
+				network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") + 
+					"&emsp;(" + jsonData.date.split(" ")[3] + ")");
      });
 }
 
