@@ -161,6 +161,7 @@ function drawTopology(data){
     network.on("click", function (params){
 		if(params.nodes.length == 0){
 			highlightSelectedNodes(network); // perform group de-selection
+			$("#grpAccordion").accordion("option","active",false); // update legend
 		} else if(params.nodes.length == 1){
 			showNodeCooltip(params.nodes[0], network);
 			toggleCooltipPinned(params.nodes[0]);
@@ -316,7 +317,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  });
 	  
 	  $("#legendList").append('<li class="noPadding list-group-item"><div id="grpAccordion">' + groupsInfo + '</div></li>');
-	  $("#grpAccordion").accordion();
+	  $("#grpAccordion").accordion({active: false, collapsible: true});
 	  
 	   keys.forEach(function(entry) {
 			 $('#grpHeader' + entry).bind('click', function (e) {
