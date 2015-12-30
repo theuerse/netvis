@@ -150,7 +150,7 @@ function drawTopology(data){
     
     // show cooltip when mouse enters/hovers node
      network.on("hoverNode", function (params) {
-        showNodeCooltip(params.node, network, false);
+        showNodeCooltip(params.node, network);
     });
     
     // hide cooltip when mouse leaves node
@@ -162,7 +162,7 @@ function drawTopology(data){
 		if(params.nodes.length == 0){
 			highlightSelectedNodes(network); // perform group de-selection
 		} else if(params.nodes.length == 1){
-			showNodeCooltip(params.nodes[0], network, true);
+			showNodeCooltip(params.nodes[0], network);
 			toggleCooltipPinned(params.nodes[0]);
 		}
 	});
@@ -338,7 +338,7 @@ function stringStartsWith(string, prefix) {
 
 
 // show tooltip for node
-function showNodeCooltip(id,network,pinned){
+function showNodeCooltip(id,network){
 	if($("#" + id).length > 0) return; // only one per id at any time
 	
 	// calculate screen position	
@@ -365,12 +365,6 @@ function showNodeCooltip(id,network,pinned){
 			$(".ui-dialog-titlebar-close span:last", widget).remove(); //remove unused span
 			$("button.ui-dialog-titlebar-close", widget).attr("title", "(un-)/pin");
 			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
-			
-			// pinned right from the start
-			if(pinned){
-				$("#pin" + id).addClass("active");
-				$("button.ui-dialog-titlebar-close", widget).css("border", "2px solid green");
-			}
 		},
 		show: {
 			effect: 'fade',
