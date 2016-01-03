@@ -1,4 +1,4 @@
-AddCharset utf-8 .html .css .php .txt .js .json
+AddCharset UTF-8 .html .css .php .txt .js .json
 
 <ifmodule mod_headers.c>
  <filesmatch "\\.(json)$">
