@@ -439,15 +439,38 @@ function hideNodeCooltip(id){
 // retrieve status-information about node
 function getNodeStatus(network, id){
 	// asking for files directly is good for caching
+	var rawJsonString;
 	var jsonFilePath = jsonDirectory + "PI" + id + ".json";
      // get file directly
-     $.getJSON(jsonFilePath, function(jsonData) {
+     $.ajax({
+		url: jsonFilePath,
+		data: rawJsonString,
+		dataType: 'text',
+		success: function(rawJsonString) {
+			var jsonData = parseJSON(rawJsonString);
+			if(jsonData == null) return;
 			// update content
 			$("#" + id).html(buildInfoTable(jsonData));
 			$("#pin" + id).parent().children("span").html(
 				network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") + 
 					"&emsp;(" + jsonData.date.split(" ")[3] + ")");
-     });
+		}
+	});
+}
+
+
+function parseJSON(jsonString){
+	// space for additional cleanup of JSON-String
+	
+	try {
+		var json = $.parseJSON(jsonString);
+		return json;
+	}
+	catch(err) {
+		console.log("parsing of JSON - file failed: " + err.message);
+		console.log(jsonString);
+		return null;
+	}
 }
 
 // formats given JSON-data nicely
