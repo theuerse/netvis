@@ -1,6 +1,9 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
+ var updateInterval = 3000; // normal time between two update-attempts [ms]
  var statusUpdateIntervals = {};
+ var logReadIntervals = {};
+ var clientLogInfo = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
  var poppedUpEdges = [];
@@ -46,6 +49,7 @@ function drawTopology(data){
 	var part = -1; 
 	var edgeInfo;  // holds information about a single edge
 	var nodeInfo;  // holds information about a single node
+	var clients = []; // array containing the ids of all clients
 	var servers = []; // array containing the ids of all servers
 	var groups = {}; // contains server -> clients entries
 	var numberOfNodes = 0; // total number of nodes
@@ -100,7 +104,9 @@ function drawTopology(data){
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
 				 shadow: true, shape: "image", image: images["client"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
-			
+			if($.inArray(nodeInfo[0],clients)<0){
+				clients.push(nodeInfo[0]); // add client-id only if not already present					
+			}		
 		}
 	}
 	
@@ -203,6 +209,11 @@ function drawTopology(data){
 		network.redraw();
 		network.fit({animation:options});
 		});
+	
+	// start reading RealtimeLogs
+	clients.forEach(function(client) {
+		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
+	});
 }
 
 // Runs through edge-entries one time, determining the 
@@ -286,6 +297,40 @@ function highlightSelectedNodes(network){
 		}
     }
     nodes.update(updateArray);
+}
+
+
+function updateClientState(id){
+	
+	// get  directly
+    $.get(jsonDirectory + "consumer-PI_" + id + ".log" , function(data) {
+		
+		// seperate lines
+		var lines = data.split("\n");
+		
+		// access last line
+		var lastLine = lines[lines.length-2]; // compensate file ending in \n
+		console.log("PI_" + id + ": " + lastLine);
+		
+		// access individual columns
+		var columns = lastLine.split("\t");
+		
+		var clientInfo = {date: columns[0], lvl: columns[4]};
+		
+		if(clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)){
+			console.log("updating logInfo for PI_"+id);
+			clientLogInfo[id] = clientInfo;
+			// update graphical representation of client
+			
+		}else {
+			console.log("reading old data, no updating here!");
+			// wait a bit for the logfile to be written (completely) ?
+		}
+       
+    })
+    .fail(function() {
+        console.log(fail);
+    })
 }
 
 
@@ -408,7 +453,7 @@ function showNodeCooltip(id,network){
 	getNodeStatus(network, id);
 	
 	// update status in three second intervals (using local cache)
-	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(network, id)}, 3000);
+	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(network, id)}, updateInterval);
 } 
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
