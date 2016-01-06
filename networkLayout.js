@@ -15,6 +15,7 @@
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
 		client: ["res/img/client.svg","res/img/clientGrey.svg"]
 	 };
+ var network;
  var highlightActive = false;
  	// colors of BYR color wheel, order changed
 	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
@@ -107,7 +108,7 @@ function drawTopology(data){
 			
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, shape: "image", image: getClientImageUrl("0",clientScreenFillColors[2],clientScreenFontColors[2]), 
+				 shadow: true, shape: "image", image: getClientImageUrl("",clientScreenFillColors[0],clientScreenFontColors[0]), 
 				 font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			if($.inArray(nodeInfo[0],clients)<0){
 				clients.push(nodeInfo[0]); // add client-id only if not already present					
@@ -153,7 +154,7 @@ function drawTopology(data){
 	}; 
 	
 	// draw graph
-	var network = new vis.Network(container, data, options);
+	network = new vis.Network(container, data, options);
 	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
@@ -216,9 +217,9 @@ function drawTopology(data){
 		});
 	
 	// start reading RealtimeLogs
-	/*clients.forEach(function(client) {
+	clients.forEach(function(client) {
 		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
-	});*/
+	});
 }
 
 // Runs through edge-entries one time, determining the 
@@ -244,7 +245,7 @@ function getMinMaxBandwidth(lines){
 	return bitrateBounds;
 }
 
-function highlightSelectedNodes(network){
+function highlightSelectedNodes(){
 	var nodes = network.body.data.nodes;
 	var allNodes = nodes.get({returnType:"Object"});
 	var selectedNodeIds = network.getSelectedNodes();
@@ -317,27 +318,38 @@ function updateClientState(id){
 		
 		// access last line
 		var lastLine = lines[lines.length-2]; // compensate file ending in \n
-		console.log("PI_" + id + ": " + lastLine);
+		//console.log("PI_" + id + ": " + lastLine);
 		
 		// access individual columns
 		var columns = lastLine.split("\t");
-		
-		var clientInfo = {date: columns[0], lvl: columns[4]};
+		var clientInfo = {date: columns[0], level: parseInt(columns[4])};
 		
 		if(clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)){
 			console.log("updating logInfo for PI_"+id);
 			clientLogInfo[id] = clientInfo;
 			// update graphical representation of client
+			updateClientRepresentation(id,clientInfo.level,clientInfo.level);
 			
 		}else {
-			console.log("reading old data, no updating here!");
+			// console.log("reading old data, no updating here!");
 			// wait a bit for the logfile to be written (completely) ?
 		}
        
     })
     .fail(function() {
-        console.log(fail);
+        console.log("failed retrieving logfile for PI_" + id);
+        updateClientRepresentation(id,"",-1); // display default cold blue screen
     })
+}
+
+// update the look of the given client according to the given level
+function updateClientRepresentation(id,text,level){
+	var nodes = network.body.data.nodes;
+	var allNodes = nodes.get({returnType:"Object"});
+	
+	var node = allNodes[id]; console.log(node);
+	node.image = getClientImageUrl(text,clientScreenFillColors[level+1],clientScreenFontColors[level+1]);
+	nodes.update([node]);
 }
 
 
@@ -418,7 +430,7 @@ function stringStartsWith(string, prefix) {
 
 
 // show tooltip for node
-function showNodeCooltip(id,network){
+function showNodeCooltip(id){
 	if($("#" + id).length > 0) return; // only one per id at any time
 	
 	// calculate screen position	
@@ -457,10 +469,10 @@ function showNodeCooltip(id,network){
 	$("#"+id).css("height","130px");
 	
 	// update node-status the first time
-	getNodeStatus(network, id);
+	getNodeStatus(id);
 	
 	// update status in three second intervals (using local cache)
-	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(network, id)}, updateInterval);
+	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, updateInterval);
 } 
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
@@ -489,7 +501,7 @@ function hideNodeCooltip(id){
 }
 
 // retrieve status-information about node
-function getNodeStatus(network, id){
+function getNodeStatus(id){
 	// asking for files directly is good for caching
 	var rawJsonString;
 	var jsonFilePath = jsonDirectory + "PI" + id + ".json";

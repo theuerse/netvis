@@ -16,8 +16,7 @@ function cacheFile(path) {
 		async:false, // synchronous request ??
 		success: function(svgString) {
 			svgCache[path] = {data: svgString};
-			console.log("cached " + path);
-			console.log(svgCache);
+			console.log("cached: " + path);
 		}
 	});			
 }
