@@ -220,6 +220,9 @@ function drawTopology(data){
 	clients.forEach(function(client) {
 		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
 	});
+	
+	// periodicalle update svg-level-statistic chart
+	setInterval(function(){updateSVCLevelChart()}, updateInterval);
 }
 
 // Runs through edge-entries one time, determining the 
@@ -352,6 +355,44 @@ function updateClientRepresentation(id,text,level){
 	nodes.update([node]);
 }
 
+function updateSVCLevelChart(){
+	var lvlStatistic = [0,0,0]; // TODO: allow number of levels != 3
+	for (var key in clientLogInfo) {
+		lvlStatistic[clientLogInfo[key].level] += 1;
+	}
+	
+	var data = {
+    labels: [
+        "L2",
+        "L1",
+        "L0"
+    ],
+    datasets: [
+        {
+            data: lvlStatistic,
+            backgroundColor: [
+				clientScreenFillColors[3],
+				clientScreenFillColors[2],
+				clientScreenFillColors[1]
+            ],
+            hoverBackgroundColor: [  
+                "#267300",
+                "#D9D900",
+                "#D90000"
+            ]
+        }]
+	};
+	
+	var ctx = document.getElementById("chart-area");
+	var myPieChart = new Chart(ctx,{
+		type:'pie',
+		data: data
+	});
+	
+	myPieChart.resize();
+
+}
+
 
 function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  $('#legendContainer').append('<ul id="legendList" class="list-group">' +
@@ -421,6 +462,11 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  // add random-seed btn
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
 			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></li>');
+			
+	 // add svc-level chart
+	 $('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
+								'<canvas id="chart-area" width="150" height="300"></canvas>' +
+							'</div></li>');
 }
     
 // checks if a given string starts with given prefix
