@@ -216,13 +216,16 @@ function drawTopology(data){
 		network.fit({animation:options});
 		});
 	
-	// start reading RealtimeLogs
-	clients.forEach(function(client) {
-		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
-	});
 	
-	// periodicalle update svg-layer-statistic chart
-	setInterval(function(){updateSVCLayerChart()}, updateInterval);
+	if(getUrlVar("rtlog") === "1"){
+		// start reading RealtimeLogs
+		clients.forEach(function(client) {
+			logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
+		});
+	
+		// periodicalle update svg-layer-statistic chart
+		setInterval(function(){updateSVCLayerChart()}, updateInterval);
+	}
 }
 
 // Runs through edge-entries one time, determining the 
@@ -460,13 +463,25 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  });
 	  
 	  // add random-seed btn
+	  var rtlog = getUrlVar("rtlog");
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
-			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></li>');
+			Math.floor((Math.random() * 1000) + 1) + ((rtlog) ? '&rtlog=' + rtlog : '')  + '" class="btn btn-default">random seed</a></li>');
 			
-	 // add svc-layer chart
-	 $('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
-								'<canvas id="chart-area" width="150" height="300"></canvas>' +
-							'</div></li>');
+	 // add realtime-logging - selector
+	 var seed = getUrlVar("seed");
+	 if(rtlog === "1"){
+			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + ((seed) ? '?seed=' + seed : '') 
+				+ '" class="btn btn-danger">ignore rt-logs</a></li>');
+			
+			// add svc-layer chart
+			$('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
+				'<canvas id="chart-area" width="150" height="300"></canvas>' +
+			'</div></li>');
+	 }
+	 else{
+		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +  '?rtlog=1' + ((seed) ? '&seed=' + seed : '') 
+				+ '" class="btn btn-success">read rt-logs</a></li>');
+	 }
 }
     
 // checks if a given string starts with given prefix
@@ -681,7 +696,7 @@ function getEdgeInfoHtml(edgeInfo){
 // returns the value of a GET-param identified by 'name'
 function getUrlVar(name){
 	var param = window.location.href.match('/?.*' + name + '=([0-9]*?)(&|$)');
-	if(param === null) return undefined;
+	if(param === null) return "";
 	else return param[1];
 }
  
