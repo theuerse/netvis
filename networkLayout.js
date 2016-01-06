@@ -25,6 +25,7 @@
 	    $("#graphContainer").append(
 			new Spinner({color: '#dcdcdc', scale: 3}).spin().el);
 	    
+			setupSvgCache();
             console.log("ready!"); 
             // get file directly
             $.get(topologyFilePath, function(data) {
@@ -103,7 +104,7 @@ function drawTopology(data){
 			
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, shape: "image", image: images["client"][0], font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, shape: "image", image: getClientImage(""), font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			if($.inArray(nodeInfo[0],clients)<0){
 				clients.push(nodeInfo[0]); // add client-id only if not already present					
 			}		
@@ -211,9 +212,9 @@ function drawTopology(data){
 		});
 	
 	// start reading RealtimeLogs
-	clients.forEach(function(client) {
+	/*clients.forEach(function(client) {
 		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
-	});
+	});*/
 }
 
 // Runs through edge-entries one time, determining the 
