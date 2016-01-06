@@ -388,7 +388,7 @@ function updateSVCLayerChart(){
 	
 	var ctx = document.getElementById("chart-area");
 	var myPieChart = new Chart(ctx,{
-		type:'pie',
+		type:'doughnut',
 		data: data
 	});
 	
