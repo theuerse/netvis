@@ -324,7 +324,7 @@ function updateClientState(id){
 		var columns = lastLine.split("\t");
 		var clientInfo = {date: columns[0], level: parseInt(columns[4])};
 		
-		if(clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)){
+		if((clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4])){
 			console.log("updating logInfo for PI_"+id);
 			clientLogInfo[id] = clientInfo;
 			// update graphical representation of client
