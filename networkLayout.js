@@ -221,8 +221,8 @@ function drawTopology(data){
 		logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
 	});
 	
-	// periodicalle update svg-level-statistic chart
-	setInterval(function(){updateSVCLevelChart()}, updateInterval);
+	// periodicalle update svg-layer-statistic chart
+	setInterval(function(){updateSVCLayerChart()}, updateInterval);
 }
 
 // Runs through edge-entries one time, determining the 
@@ -325,13 +325,13 @@ function updateClientState(id){
 		
 		// access individual columns
 		var columns = lastLine.split("\t");
-		var clientInfo = {date: columns[0], level: parseInt(columns[4])};
+		var clientInfo = {date: columns[0], layer: parseInt(columns[4])};
 		
 		if((clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4])){
 			console.log("updating logInfo for PI_"+id);
 			clientLogInfo[id] = clientInfo;
 			// update graphical representation of client
-			updateClientRepresentation(id,clientInfo.level,clientInfo.level);
+			updateClientRepresentation(id,clientInfo.layer,clientInfo.layer);
 			
 		}else {
 			// console.log("reading old data, no updating here!");
@@ -345,20 +345,20 @@ function updateClientState(id){
     })
 }
 
-// update the look of the given client according to the given level
-function updateClientRepresentation(id,text,level){
+// update the look of the given client according to the given layer
+function updateClientRepresentation(id,text,layer){
 	var nodes = network.body.data.nodes;
 	var allNodes = nodes.get({returnType:"Object"});
 	
 	var node = allNodes[id]; console.log(node);
-	node.image = getClientImageUrl(text,clientScreenFillColors[level+1],clientScreenFontColors[level+1]);
+	node.image = getClientImageUrl(text,clientScreenFillColors[layer+1],clientScreenFontColors[layer+1]);
 	nodes.update([node]);
 }
 
-function updateSVCLevelChart(){
-	var lvlStatistic = [0,0,0]; // TODO: allow number of levels != 3
+function updateSVCLayerChart(){
+	var lvlStatistic = [0,0,0]; // TODO: allow number of layers != 3
 	for (var key in clientLogInfo) {
-		lvlStatistic[clientLogInfo[key].level] += 1;
+		lvlStatistic[clientLogInfo[key].layer] += 1;
 	}
 	
 	var data = {
@@ -463,7 +463,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
 			Math.floor((Math.random() * 1000) + 1) +'" class="btn btn-default">random seed</a></li>');
 			
-	 // add svc-level chart
+	 // add svc-layer chart
 	 $('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
 								'<canvas id="chart-area" width="150" height="300"></canvas>' +
 							'</div></li>');
