@@ -1,5 +1,8 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
+					       // cold blue,   red,    yellow, green
+ var clientScreenFillColors = ["#1b1b43","#FF0000","#FFFF00","#339900"];
+ var clientScreenFontColors = ["#FFFFFF","#FFFFFF","#000000","#FFFFFF"]; 
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var statusUpdateIntervals = {};
  var logReadIntervals = {};
@@ -104,7 +107,8 @@ function drawTopology(data){
 			
 			// nodeInfo[0] ... id of client - node	
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, shape: "image", image: getClientImage(""), font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
+				 shadow: true, shape: "image", image: getClientImageUrl("0",clientScreenFillColors[2],clientScreenFontColors[2]), 
+				 font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			if($.inArray(nodeInfo[0],clients)<0){
 				clients.push(nodeInfo[0]); // add client-id only if not already present					
 			}		
@@ -258,6 +262,7 @@ function highlightSelectedNodes(network){
 			}
         
 			// swap in normal (colored) images
+			if(allNodes[nodeId].group == "client") continue; // make exception for clients
 			allNodes[nodeId].image = images[allNodes[nodeId].group][0];
 		}
 		highlightActive = false
@@ -284,6 +289,7 @@ function highlightSelectedNodes(network){
 			}
         
 			// swap in greyed-out images
+			if(allNodes[nodeId].group == "client") continue; // make exception for clients
 			allNodes[nodeId].image = images[allNodes[nodeId].group][1];
 		}
     }  

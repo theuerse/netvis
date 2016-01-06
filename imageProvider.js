@@ -23,22 +23,25 @@ function cacheFile(path) {
 }
 
 // for now, displayedNumber should stay between 0 and 9
-function getClientImage(displayedNumber){
-	if(urlCache[clientImagePath+"_"+displayedNumber] === undefined){
+function getClientImageUrl(displayedNumber, screenFillColor, screenFontColor){
+	var imgName = clientImagePath+"_"+displayedNumber+"_"+screenFillColor+"_"+screenFontColor;
+	if(urlCache[imgName] === undefined){
 		if(svgCache[clientImagePath] === undefined) cacheFile(clientImagePath);
 	
 		var svgString = svgCache[clientImagePath].data;
 		
 		// make changes to svg
 		svgString = svgString.replace("$LVL$",displayedNumber);
+		svgString = svgString.replace("$SCREENFILLCOLOR$",screenFillColor);
+		svgString = svgString.replace("$SCREENFONTCOLOR$", screenFontColor);
 		
 		var DOMURL = window.URL || window.webkitURL || window;
 
 		var img = new Image();
 		var svg = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 		var url = DOMURL.createObjectURL(svg);
-		urlCache[clientImagePath+"_"+displayedNumber] = url;
+		urlCache[imgName] = url;
 		console.log("created: " + url);
 	}
-	return urlCache[clientImagePath+"_"+displayedNumber];
+	return urlCache[imgName];
 }

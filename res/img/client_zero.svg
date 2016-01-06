@@ -657,7 +657,7 @@
   <path
      d="m 8.4105348,4.3058272 -1.242195,22.0453168 27.6503892,0 L 33.483712,4.3992558 8.4105348,4.3058272 z"
      id="display"
-     style="fill:#1b1b43;fill-opacity:1;fill-rule:evenodd;stroke:#626269;stroke-width:0.50000000000000000;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+     style="fill:$SCREENFILLCOLOR$;fill-opacity:1;fill-rule:evenodd;stroke:#626269;stroke-width:0.50000000000000000;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
   <path
      d="m 6.1774331,28.735789 31.4284769,0"
      id="path2393"
@@ -671,7 +671,7 @@
      y="24.842253"
      id="displayedText"
      xml:space="preserve"
-     style="font-size:26px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Sans"><tspan
+     style="font-size:26px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:$SCREENFONTCOLOR$;fill-opacity:1;stroke:none;font-family:Sans"><tspan
        x="12.727922"
        y="24.842253"
        id="textSpan"
