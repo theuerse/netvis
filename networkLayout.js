@@ -7,6 +7,7 @@
  var statusUpdateIntervals = {};
  var logReadIntervals = {};
  var clientLogInfo = {};
+ var clientJson = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
  var poppedUpEdges = [];
@@ -225,6 +226,15 @@ function drawTopology(data){
 	
 		// periodically update client-visuals and chart
 		setInterval(function(){updateDisplayedSVCData(clients)}, updateInterval);
+	}
+	
+	if(getUrlVar("traffic") === "1"){
+		// start continuously downloading json-files and cache them locally
+		setInterval(function(){
+			for(var id = 0; id < numberOfNodes; id++){
+				requestJsonFile(id,undefined);
+			}
+		},updateInterval);
 	}
 }
 
@@ -482,9 +492,18 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	  // add random-seed btn
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
 		getParamString({seed: Math.floor((Math.random() * 1000) + 1), rtlog: rtlog, traffic: traffic}) +'" class="btn btn-default">random seed</a></li>');
-			
-	 // add realtime-logging - selector
 	
+	 // add traffic - watch selector 
+	 if(traffic === "1"){
+			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
+			getParamString({seed: seed, rtlog: rtlog, traffic: ""}) + '" class="btn btn-danger">ignore traffic</a></li>');
+	 }
+	 else{
+		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
+				getParamString({seed: seed, rtlog: rtlog, traffic: "1"}) + '" class="btn btn-success">watch traffic</a></li>');
+	 }
+	 		
+	 // add realtime-logging - selector
 	 if(rtlog === "1"){
 			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
 			getParamString({seed: seed, rtlog: "", traffic: traffic}) + '" class="btn btn-danger">ignore rt-logs</a></li>');
@@ -497,17 +516,6 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	 else{
 		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
 				getParamString({seed: seed, rtlog: "1", traffic: traffic}) + '" class="btn btn-success">read rt-logs</a></li>');
-	 }
-	 
-	  if(traffic === "1"){
-			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
-			getParamString({seed: seed, rtlog: rtlog, traffic: ""}) + '" class="btn btn-danger">ignore traffic</a></li>');
-			
-			// TODO: do traffic stuff?
-	 }
-	 else{
-		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-				getParamString({seed: seed, rtlog: rtlog, traffic: "1"}) + '" class="btn btn-success">watch traffic</a></li>');
 	 }
 }
 
@@ -570,11 +578,19 @@ function showNodeCooltip(id){
 	// set default-height for Cooltip
 	$("#"+id).css("height","130px");
 	
-	// update node-status the first time
-	getNodeStatus(id);
-	
 	// update status in three second intervals (using local cache)
-	statusUpdateIntervals[id] = setInterval(function(){getNodeStatus(id)}, updateInterval);
+	if(getUrlVar("traffic") === "1"){
+		// json-files retrieved in batch
+		statusUpdateIntervals[id] = setInterval(function(){updateNodeCooltip(id)}, updateInterval);
+		updateNodeCooltip(id); // update node-status the first time
+	}else{
+		requestJsonFile(id,updateNodeCooltip);
+		statusUpdateIntervals[id] = setInterval(function(){
+			// json-files retrieved individually, only when needed
+			requestJsonFile(id,updateNodeCooltip); // update node-status the first time
+		}, updateInterval);
+	}
+
 } 
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
@@ -603,8 +619,20 @@ function hideNodeCooltip(id){
 }
 
 // retrieve status-information about node
-function getNodeStatus(id){
-	// asking for files directly is good for caching
+function updateNodeCooltip(id){
+    // use local jsonFile-cache
+	// update content
+	if(clientJson[id] === undefined) return; // no json retrieved yet
+	var jsonData = clientJson[id].current;
+	if(jsonData === undefined) return; // still no json retrieved
+	
+	$("#" + id).html(buildInfoTable(jsonData));
+	$("#pin" + id).parent().children("span").html(
+		network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") + 
+		"&emsp;(" + jsonData.date.split(" ")[3] + ")");
+}
+
+function requestJsonFile(id, callback){
 	var rawJsonString;
 	var jsonFilePath = jsonDirectory + "PI" + id + ".json";
      // get file directly
@@ -615,11 +643,19 @@ function getNodeStatus(id){
 		success: function(rawJsonString) {
 			var jsonData = parseJSON(rawJsonString);
 			if(jsonData == null) return;
-			// update content
-			$("#" + id).html(buildInfoTable(jsonData));
-			$("#pin" + id).parent().children("span").html(
-				network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") + 
-					"&emsp;(" + jsonData.date.split(" ")[3] + ")");
+			
+			// cache locally
+			if(clientJson[id] === undefined){
+				clientJson[id] = {previous: undefined, current: jsonData};
+			}
+			else{
+				clientJson[id].previous = clientJson[id].current;
+				clientJson[id].current = jsonData;
+			}
+			
+			if(callback != undefined){
+				callback(id);
+			}
 		}
 	});
 }
