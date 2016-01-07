@@ -473,16 +473,21 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 			});
 	  });
 	  
+	 
+	  // get params
+	   var seed = getUrlVar("seed");
+	   var rtlog = getUrlVar("rtlog");
+	   var traffic = getUrlVar("traffic");
+	   
 	  // add random-seed btn
-	  var rtlog = getUrlVar("rtlog");
-	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +'?seed=' + 
-			Math.floor((Math.random() * 1000) + 1) + ((rtlog) ? '&rtlog=' + rtlog : '')  + '" class="btn btn-default">random seed</a></li>');
+	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
+		getParamString({seed: Math.floor((Math.random() * 1000) + 1), rtlog: rtlog, traffic: traffic}) +'" class="btn btn-default">random seed</a></li>');
 			
 	 // add realtime-logging - selector
-	 var seed = getUrlVar("seed");
+	
 	 if(rtlog === "1"){
-			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + ((seed) ? '?seed=' + seed : '') 
-				+ '" class="btn btn-danger">ignore rt-logs</a></li>');
+			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
+			getParamString({seed: seed, rtlog: "", traffic: traffic}) + '" class="btn btn-danger">ignore rt-logs</a></li>');
 			
 			// add svc-layer chart
 			$('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
@@ -490,9 +495,34 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 			'</div></li>');
 	 }
 	 else{
-		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +  '?rtlog=1' + ((seed) ? '&seed=' + seed : '') 
-				+ '" class="btn btn-success">read rt-logs</a></li>');
+		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
+				getParamString({seed: seed, rtlog: "1", traffic: traffic}) + '" class="btn btn-success">read rt-logs</a></li>');
 	 }
+	 
+	  if(traffic === "1"){
+			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname + 
+			getParamString({seed: seed, rtlog: rtlog, traffic: ""}) + '" class="btn btn-danger">ignore traffic</a></li>');
+			
+			// TODO: do traffic stuff?
+	 }
+	 else{
+		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
+				getParamString({seed: seed, rtlog: rtlog, traffic: "1"}) + '" class="btn btn-success">watch traffic</a></li>');
+	 }
+}
+
+// builds a get-param string out of given argument (object containing key->value pairs)
+function getParamString(values){
+	var count = 0;
+	var paramString= "";
+	Object.keys(values).forEach(function(key,index) {
+		if(values[key] != ""){
+			if(count++ == 0) paramString+= "?";
+			else paramString+= "&";
+			paramString += key + "=" + values[key];
+		}
+	});
+	return paramString;
 }
     
 // checks if a given string starts with given prefix
