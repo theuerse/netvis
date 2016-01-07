@@ -235,6 +235,8 @@ function drawTopology(data){
 				requestJsonFile(id,undefined);
 			}
 		},updateInterval);
+		
+		setInterval(function(){updateEdgeTraffic(numberOfNodes)},updateInterval);
 	}
 }
 
@@ -323,6 +325,16 @@ function highlightSelectedNodes(){
     nodes.update(updateArray);
 }
 
+function updateEdgeTraffic(numberOfNodes){
+	var trafficPerNode = [];
+	for(var id = 0; id < numberOfNodes; id++){ // traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
+		if(clientJson[id] === undefined || clientJson[id].previous === undefined) trafficPerNode.push(0);
+		else trafficPerNode.push((clientJson[id].current.txbytes - clientJson[id].previous.txbytes) + 
+		(clientJson[id].current.rxbytes - clientJson[id].previous.rxbytes));
+	}
+	//console.log(trafficPerNode);
+	//console.log("updating edges"); //TODO: implement
+}
 
 function updateClientState(id){
 	
