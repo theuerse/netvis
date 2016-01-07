@@ -223,8 +223,8 @@ function drawTopology(data){
 			logReadIntervals[client] = setInterval(function(){updateClientState(client)}, updateInterval);
 		});
 	
-		// periodicalle update svg-layer-statistic chart
-		setInterval(function(){updateSVCLayerChart()}, updateInterval);
+		// periodically update client-visuals and chart
+		setInterval(function(){updateDisplayedSVCData(clients)}, updateInterval);
 	}
 }
 
@@ -330,16 +330,10 @@ function updateClientState(id){
 		var columns = lastLine.split("\t");
 		var clientInfo = {date: columns[0], layer: parseInt(columns[4])};
 		
-		if((clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4])){
-			console.log("updating logInfo for PI_"+id);
-			clientLogInfo[id] = clientInfo;
-			// update graphical representation of client
-			updateClientRepresentation(id,clientInfo.layer,clientInfo.layer);
-			
-		}else {
-			// console.log("reading old data, no updating here!");
-			// wait a bit for the logfile to be written (completely) ?
-		}
+		// TODO: check dates?
+		//if((clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4]))
+		clientLogInfo[id] = clientInfo;
+		//console.log("updating logInfo for PI_"+id);
        
     })
     .fail(function() {
@@ -353,9 +347,22 @@ function updateClientRepresentation(id,text,layer){
 	var nodes = network.body.data.nodes;
 	var allNodes = nodes.get({returnType:"Object"});
 	
-	var node = allNodes[id]; console.log(node);
+	var node = allNodes[id];
 	node.image = getClientImageUrl(text,clientScreenFillColors[layer+1],clientScreenFontColors[layer+1]);
 	nodes.update([node]);
+}
+
+function updateDisplayedSVCData(clients){
+			// update individual client - images
+			clients.forEach(function(clientId) {
+				// update graphical representation of client
+				if(clientLogInfo[clientId] != undefined){
+					updateClientRepresentation(clientId,clientLogInfo[clientId].layer,clientLogInfo[clientId].layer);
+				}
+			});
+			
+			// update statistics chart
+			updateSVCLayerChart();
 }
 
 function updateSVCLayerChart(){
@@ -363,6 +370,7 @@ function updateSVCLayerChart(){
 	for (var key in clientLogInfo) {
 		lvlStatistic[clientLogInfo[key].layer] += 1;
 	}
+	lvlStatistic.reverse(); // necessary, because we start with 0 at the bottom (last element)
 	
 	var data = {
     labels: [
