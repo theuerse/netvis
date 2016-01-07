@@ -155,7 +155,7 @@ function drawTopology(data){
 	
 	// draw graph
 	network = new vis.Network(container, data, options);
-	drawLegend(network,jQuery.extend({},options),numberOfNodes,groups,bitrateBounds); 
+	drawLegend(network,jQuery.extend({},options),numberOfNodes,servers,groups,bitrateBounds); 
     
     // shut down physics when networkLayout has initially stabilized
     network.once("stabilized", function(params) {
@@ -397,7 +397,7 @@ function updateSVCLayerChart(){
 }
 
 
-function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
+function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	  $('#legendContainer').append('<ul id="legendList" class="list-group">' +
 										'<li id="legendGraph" class="noPadding list-group-item"></li>' +
 									'</ul>');
@@ -415,7 +415,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
       options.interaction = {zoomView: false, selectable: false};
       options.physics = {enabled: false};
       
-      var serverCount = Object.keys(groups).length;
+      var serverCount = servers.length;
       var clientCount = 0;
       for(var key in groups){
 		 clientCount += groups[key].length;
@@ -441,11 +441,9 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  var groupsInfo = "";
 	  
 	  // for every server (group-leader)
-	  var i = 0;
-	  var keys = Object.keys(groups).reverse();
-	  keys.forEach(function(entry) {
+	  servers.forEach(function(entry) {
 		    var members = $.merge([entry],groups[entry]).sort(function(a,b){return a - b}); // sort as numbers
-			groupsInfo += '<h3 id="grpHeader' + entry +'" style="color: ' + colors[i] +'">Group ' + (++i) + '</h3>' +
+			groupsInfo += '<h3 id="grpHeader' + entry +'" style="color: ' + colors[$.inArray(entry,servers)] +'">Group ' + ($.inArray(entry,servers)+1) + '</h3>' +
 					'<div>' +
 						'<p>' + members + '</p>' +
 					'</div>';
@@ -454,7 +452,7 @@ function drawLegend(network,options,numberOfNodes,groups,bitrateBounds){
 	  $("#legendList").append('<li class="noPadding list-group-item"><div id="grpAccordion">' + groupsInfo + '</div></li>');
 	  $("#grpAccordion").accordion({active: false, collapsible: true});
 	  
-	   keys.forEach(function(entry) {
+	   servers.forEach(function(entry) {
 			 $('#grpHeader' + entry).bind('click', function (e) {
 				network.selectNodes($.merge([entry],groups[entry]));
 				// highlight selected group-nodes
