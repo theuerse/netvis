@@ -370,17 +370,17 @@ function updateSVCLayerChart(){
 	for (var key in clientLogInfo) {
 		lvlStatistic[clientLogInfo[key].layer] += 1;
 	}
-	lvlStatistic.reverse(); // necessary, because we start with 0 at the bottom (last element)
+	var sum = lvlStatistic.reduce(function(pv, cv) { return pv + cv; }, 0);
 	
 	var data = {
     labels: [
-        "L2",
-        "L1",
-        "L0"
+        "L2 (" + Math.round((lvlStatistic[2] / sum) * 100) + "%)",
+        "L1 (" + Math.round((lvlStatistic[1] / sum) * 100) + "%)",
+        "L0 (" + Math.round((lvlStatistic[0] / sum) * 100) + "%)"
     ],
     datasets: [
         {
-            data: lvlStatistic,
+            data: lvlStatistic.reverse(), // necessary, because we start with 0 at the bottom (last element)
             backgroundColor: [
 				clientScreenFillColors[3],
 				clientScreenFillColors[2],
