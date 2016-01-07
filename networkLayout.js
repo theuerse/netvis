@@ -338,18 +338,28 @@ function updateClientState(id){
     })
     .fail(function() {
         console.log("failed retrieving logfile for PI_" + id);
-        updateClientRepresentation(id,"",-1); // display default cold blue screen
+        // display default cold blue screen
+        var clientInfo = {date: new Date(), layer: -1};
+		clientLogInfo[id] = clientInfo;
     })
 }
 
-// update the look of the given client according to the given layer
-function updateClientRepresentation(id,text,layer){
+// bulk-update client-images
+function updateClientRepresentations(clients){
+	var updatedNodes = [];
 	var nodes = network.body.data.nodes;
 	var allNodes = nodes.get({returnType:"Object"});
 	
-	var node = allNodes[id];
-	node.image = getClientImageUrl(text,clientScreenFillColors[layer+1],clientScreenFontColors[layer+1]);
-	nodes.update([node]);
+	var node;
+	var layer;
+	clients.forEach(function(clientId) {
+		layer = (clientLogInfo[clientId] === undefined) ? -1 : clientLogInfo[clientId].layer;
+		node = allNodes[clientId];
+		node.image = getClientImageUrl((layer == -1) ? "" : layer,clientScreenFillColors[layer+1],clientScreenFontColors[layer+1]);
+		updatedNodes.push(node);
+	});
+	
+	nodes.update(updatedNodes);
 }
 
 function updateDisplayedSVCData(clients){
@@ -357,7 +367,8 @@ function updateDisplayedSVCData(clients){
 			clients.forEach(function(clientId) {
 				// update graphical representation of client
 				if(clientLogInfo[clientId] != undefined){
-					updateClientRepresentation(clientId,clientLogInfo[clientId].layer,clientLogInfo[clientId].layer);
+					// clientId,clientLogInfo[clientId].layer,clientLogInfo[clientId].layer
+					updateClientRepresentations(clients);
 				}
 			});
 			
