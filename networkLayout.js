@@ -364,13 +364,7 @@ function updateClientRepresentations(clients){
 
 function updateDisplayedSVCData(clients){
 			// update individual client - images
-			clients.forEach(function(clientId) {
-				// update graphical representation of client
-				if(clientLogInfo[clientId] != undefined){
-					// clientId,clientLogInfo[clientId].layer,clientLogInfo[clientId].layer
-					updateClientRepresentations(clients);
-				}
-			});
+			updateClientRepresentations(clients);
 			
 			// update statistics chart
 			updateSVCLayerChart();
