@@ -8,6 +8,7 @@
  var logReadIntervals = {};
  var clientLogInfo = {};
  var clientJson = {};
+ var clientTraffic = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
  var poppedUpEdges = [];
@@ -326,14 +327,36 @@ function highlightSelectedNodes(){
 }
 
 function updateEdgeTraffic(numberOfNodes){
-	var trafficPerNode = [];
-	for(var id = 0; id < numberOfNodes; id++){ // traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
-		if(clientJson[id] === undefined || clientJson[id].previous === undefined) trafficPerNode.push(0);
-		else trafficPerNode.push((clientJson[id].current.txbytes - clientJson[id].previous.txbytes) + 
-		(clientJson[id].current.rxbytes - clientJson[id].previous.rxbytes));
+	console.log("updating edges");
+	console.log(clientTraffic); // log measured client-traffic
+	
+	var edges = network.body.data.edges;
+	var allEdges = edges.get({returnType:"Object"});
+	
+	var trafficPerEdge = {};
+	var maxTraffic = 0;
+	var edge;
+	
+	// get traffic per edge and find max traffic on any edge
+	for(var edgeId in allEdges) {
+		edge = allEdges[edgeId];
+		trafficPerEdge[edge.id] = (clientTraffic[edge.from] + clientTraffic[edge.to])/2; // mean traffic
+		if(trafficPerEdge[edge.id] > maxTraffic) maxTraffic = trafficPerEdge[edge.id];
 	}
-	//console.log(trafficPerNode);
-	//console.log("updating edges"); //TODO: implement
+	
+	// update edge width ( trafficPerEdge / maxTraffic)
+	for(var edgeId in allEdges) {
+		allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
+	}
+
+    // transform the object into an array and write it back
+    var updateArray = [];
+    for (edgeId in allEdges) {
+		if (allEdges.hasOwnProperty(edgeId)) {
+			updateArray.push(allEdges[edgeId]);
+		}
+    }
+    edges.update(updateArray);
 }
 
 function updateClientState(id){
@@ -659,10 +682,15 @@ function requestJsonFile(id, callback){
 			// cache locally
 			if(clientJson[id] === undefined){
 				clientJson[id] = {previous: undefined, current: jsonData};
+				// no previous value, traffic is zero
+				clientTraffic[id] = 0;
 			}
 			else{
 				clientJson[id].previous = clientJson[id].current;
 				clientJson[id].current = jsonData;
+				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
+				clientTraffic[id] = (parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes)) + 
+				(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes));
 			}
 			
 			if(callback != undefined){
@@ -671,7 +699,6 @@ function requestJsonFile(id, callback){
 		}
 	});
 }
-
 
 function parseJSON(jsonString){
 	// space for additional cleanup of JSON-String
