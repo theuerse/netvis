@@ -689,8 +689,11 @@ function requestJsonFile(id, callback){
 				clientJson[id].previous = clientJson[id].current;
 				clientJson[id].current = jsonData;
 				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
-				clientTraffic[id] = (parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes)) + 
-				(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes));
+				if(clientJson[id].current.date != clientJson[id].previous.date){ // deal with reading the same file several times
+					/* different file! */
+					clientTraffic[id] = (parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes)) + 
+					(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes));
+				}else {/* same file!" */}
 			}
 			
 			if(callback != undefined){
