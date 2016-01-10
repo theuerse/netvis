@@ -663,10 +663,15 @@ function updateNodeCooltip(id){
 	var jsonData = clientJson[id].current;
 	if(jsonData === undefined) return; // still no json retrieved
 
-	$("#" + id).html(buildInfoTable(jsonData));
+	$("#" + id).html(buildInfoTable(id,jsonData));
 	$("#pin" + id).parent().children("span").html(
 		network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") +
 		"&emsp;(" + jsonData.date.split(" ")[3] + ")");
+  if(getUrlVar("rtlog") === "1"){
+    $("#btnWatch" + id).click(function(){
+      showNodeRtLogview(id);
+    });
+  }
 }
 
 function requestJsonFile(id, callback){
@@ -720,14 +725,16 @@ function parseJSON(jsonString){
 }
 
 // formats given JSON-data nicely
-function buildInfoTable(jsonData){
+function buildInfoTable(id,jsonData){
 	var ramUsagePercent = 100 - Math.round((parseInt(jsonData["Free RAM"]) / parseInt(jsonData["Total RAM"]))*100);
 	var hddUsagePercent = 100 - Math.round((parseInt(jsonData.Disk.free.replace("G","")) / parseInt(jsonData.Disk.total.replace("G","")))*100);
+
+  var rtLogWatchBtn = (getUrlVar("rtlog") === "1") ? '<tr><th>layer</th><td><div class="btn btn-default" id="btnWatch' + id +'">watch</div></td></tr>': "";
 
 	var table = '<table class="table">' +
 					'<thead></thead>' +
 					'<tbody>' +
-							'<tr>' +
+              '<tr>' +
 								'<th>load</th>' +
 								'<td>' + jsonData.Load + '</td>' +
 							'</tr>' +
@@ -789,11 +796,24 @@ function buildInfoTable(jsonData){
 								'<th>IPv4</th>' +
 								'<td>' + jsonData.IPv4 + '</td>' +
 							'</tr>' +
+              rtLogWatchBtn +
 					'</tbody>' +
 				 '</table>';
 	return table;
 }
 
+function showNodeRtLogview(id){
+	// calculate screen position
+	var canvasPos = network.getPositions(id)[id];
+	var pos = network.canvasToDOM(canvasPos);
+	// apply horizontal correction for legend (legend is ...px wide)
+	pos.x += $('#legendContainer').width();
+
+  if($("#rtLogview" + id).length === 0){
+    $("body").append('<div id="rtLogview' + id + '" title="Last consumed layer-quality of PI' + id + '" ></div>');
+  }
+	$("#rtLogview" + id).dialog();
+}
 
 // Takes a array containing the edge information and returns a proper
 // html-info-thing,
