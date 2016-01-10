@@ -8,6 +8,7 @@
  var logReadIntervals = {};
  var clientLogInfo = {};
  var clientJson = {};
+ var clientDatasets = {};
  var clientTraffic = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
@@ -382,6 +383,8 @@ function updateClientState(id){
 		clientLogInfo[id] = clientInfo;
 		//console.log("updating logInfo for PI_"+id);
 
+    // Update svc layer chart
+    updateNodeRtLogView(id,data);
     })
     .fail(function() {
         console.log("failed retrieving logfile for PI_" + id);
@@ -793,17 +796,57 @@ function updateInfoTable(id,jsonData){
   $("#" + id + " td.info_IPv4").html(jsonData.IPv4);
 }
 
+function updateNodeRtLogView(id, logfile){
+  console.log("trying to update logRtView for pi" + id);
+  if(clientDatasets[id] === undefined) return;
+
+  // seperate lines
+  /*var lines = logfile.split("\n");
+  for(var index in lines){
+    var columns = lines[index].split("\t");
+    if(columns <= 1) continue;
+    var entry = {x: columns[0], y: parseInt(columns[4])};
+    clientDatasets[id].add(entry);
+    if(index > 5)break;
+  }*/
+ clientDatasets[id].add({x: vis.moment(), y: 1});
+}
+
 function showNodeRtLogview(id){
+  var firstTime = ($("#rtLogview" + id).length === 0);
+  console.log("show rtlog for pi" + id);
 	// calculate screen position
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
 	// apply horizontal correction for legend (legend is ...px wide)
 	pos.x += $('#legendContainer').width();
 
-  if($("#rtLogview" + id).length === 0){
-    $("body").append('<div id="rtLogview' + id + '" title="Last consumed layer-quality of PI' + id + '" ></div>');
+  if(firstTime){
+    $("body").append('<div id="rtLogview' + id + '" title="Last consumed layer-quality of PI' + id + '" >' +
+          '<div id="plot'+ id +'"></div></div>');
   }
-	$("#rtLogview" + id).dialog();
+	$("#rtLogview" + id).dialog({
+    width: 500,
+    height: 300,
+    position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
+  });
+
+  if(firstTime){
+    var container = document.getElementById('plot'+id);
+    var dataset = new vis.DataSet();
+    clientDatasets[id] = dataset;
+    var options = {
+         style:'bar',
+         barChart: {width:20, align:'center'}, // align: left, center, right
+         drawPoints: false,
+         dataAxis: {
+             icons:true
+         },
+         orientation:'top'
+     };
+     var graph2d = new vis.Graph2d(container, dataset, options);
+     console.log(graph2d);
+  }
 }
 
 // Takes a array containing the edge information and returns a proper
