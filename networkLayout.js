@@ -578,9 +578,9 @@ function stringStartsWith(string, prefix) {
 
 // show tooltip for node
 function showNodeCooltip(id){
-	if($("#" + id).length > 0) return; // only one per id at any time
+  var firstTime = ($("#" + id).length === 0);
 
-	// calculate screen position
+  // calculate screen position
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
 	// apply horizontal correction for legend (legend is ...px wide)
@@ -588,7 +588,11 @@ function showNodeCooltip(id){
 
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
 	var nodeColor = network.body.nodes[id].options.font.color;
-	$("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
+
+  if(firstTime){
+      $("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
+  }
+
 	$('#' + id).dialog({
 		beforeClose: function(event, ui){
 			toggleCooltipPinned(id);
@@ -612,22 +616,24 @@ function showNodeCooltip(id){
 		resize: function(event, ui) { $(this).css("width","100%");},
 		position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
 	});
-	// set default-height for Cooltip
-	$("#"+id).css("height","130px");
 
-	// update status in three second intervals (using local cache)
-	if(getUrlVar("traffic") === "1"){
-		// json-files retrieved in batch
-		statusUpdateIntervals[id] = setInterval(function(){updateNodeCooltip(id);}, updateInterval);
-		updateNodeCooltip(id); // update node-status the first time
-	}else{
-		requestJsonFile(id,updateNodeCooltip);
-		statusUpdateIntervals[id] = setInterval(function(){
-			// json-files retrieved individually, only when needed
-			requestJsonFile(id,updateNodeCooltip); // update node-status the first time
-		}, updateInterval);
-	}
+  if(firstTime){
+    // set default-height for Cooltip
+    $("#"+id).css("height","130px");
 
+    // update status in three second intervals (using local cache)
+    if(getUrlVar("traffic") === "1"){
+      // json-files retrieved in batch
+      statusUpdateIntervals[id] = setInterval(function(){updateNodeCooltip(id);}, updateInterval);
+      updateNodeCooltip(id); // update node-status the first time
+    }else{
+      requestJsonFile(id,updateNodeCooltip);
+      statusUpdateIntervals[id] = setInterval(function(){
+        // json-files retrieved individually, only when needed
+        requestJsonFile(id,updateNodeCooltip); // update node-status the first time
+      }, updateInterval);
+    }
+  }
 }
 
 // 'pin'-btn is 'pressed' -> active -> coolTip stays
@@ -663,12 +669,22 @@ function updateNodeCooltip(id){
 	var jsonData = clientJson[id].current;
 	if(jsonData === undefined) return; // still no json retrieved
 
-	$("#" + id).html(buildInfoTable(id,jsonData));
+  if($("#" + id).html() === ""){
+      // Cooltip called first time, build html structure of info-table
+      $("#" + id).html(buildInfoTable(id));
+  }
+
+  // update cooltip - info-table
+  updateInfoTable(id,jsonData);
+
+  // update cooltip header (name of pi, time and stuff)
 	$("#pin" + id).parent().children("span").html(
 		network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "") +
 		"&emsp;(" + jsonData.date.split(" ")[3] + ")");
+
+  // add eventHandler to rtLogBtn to allow user to open rtLog-'history'
   if(getUrlVar("rtlog") === "1"){
-    $("#btnWatch" + id).click(function(){
+    $("#rtLogWatchBtn" + id).click(function(){
       showNodeRtLogview(id);
     });
   }
@@ -724,82 +740,57 @@ function parseJSON(jsonString){
 	}
 }
 
-// formats given JSON-data nicely
-function buildInfoTable(id,jsonData){
-	var ramUsagePercent = 100 - Math.round((parseInt(jsonData["Free RAM"]) / parseInt(jsonData["Total RAM"]))*100);
-	var hddUsagePercent = 100 - Math.round((parseInt(jsonData.Disk.free.replace("G","")) / parseInt(jsonData.Disk.total.replace("G","")))*100);
-
-  var rtLogWatchBtn = (getUrlVar("rtlog") === "1") ? '<tr><th>layer</th><td><div class="btn btn-default" id="btnWatch' + id +'">watch</div></td></tr>': "";
+// create a info-table structure
+function buildInfoTable(id){
+  var rtLogWatchBtn = (getUrlVar("rtlog") === "1" && (network.body.data.nodes.get({returnType:"Object"})[id].group === "client")) ?
+  '<tr><th>layer</th><td><div id="rtLogWatchBtn' + id +'" class="btn btn-default">watch</div></td></tr>': "";
 
 	var table = '<table class="table">' +
 					'<thead></thead>' +
 					'<tbody>' +
-              '<tr>' +
-								'<th>load</th>' +
-								'<td>' + jsonData.Load + '</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>ram</th>' +
-								'<td>' +
-									'<meter max="100" value="'+ ramUsagePercent +'">'+ ramUsagePercent + '%</meter>' +
-									ramUsagePercent + '%' +
-								'</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>net RX</th>' +
-								'<td>' + (parseInt(jsonData.rxbytes)/Math.pow(10,9)).toFixed(2) +  ' [GB]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>net TX</th>' +
-								'<td>' + (parseInt(jsonData.txbytes)/Math.pow(10,9)).toFixed(2) +  ' [GB]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>voltage</th>' +
-								'<td>' + (parseInt(jsonData.voltage)/Math.pow(10,6)).toFixed(3) +  ' [V]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>current</th>' +
-								'<td>' + (parseInt(jsonData.current)/Math.pow(10,6)).toFixed(3) +  ' [A]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>CPU temp</th>' +
-								'<td>' + jsonData.cputemp.replace("°C","")+ ' [°C]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>PMU temp</th>' +
-								'<td>' + jsonData.pmutemp.replace("°C","")+ ' [°C]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>HDD temp</th>' +
-								'<td>' + jsonData.hddtemp.replace("°C","")+ ' [°C]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>hdd</th>' +
-								'<td>' +
-									'<meter max="100" value="'+ hddUsagePercent +'">'+ hddUsagePercent + '%</meter>' +
-									hddUsagePercent + '%' +
-								'</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>cpu 0</th>' +
-								'<td>' + parseInt(jsonData.cpu0freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>cpu 1</th>' +
-								'<td>' + parseInt(jsonData.cpu1freq)/1000 +  ' [MHz]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>Uptime</th>' +
-								'<td>' + jsonData.Uptime.replace("days","")+ ' [days]</td>' +
-							'</tr>' +
-							'<tr>' +
-								'<th>IPv4</th>' +
-								'<td>' + jsonData.IPv4 + '</td>' +
-							'</tr>' +
+              '<tr><th>load</th><td id="info_load' + id +'" class="info_load"></td></tr>' +
+							'<tr><th>ram</th><td class="info_ram"></td></tr>' +
+							'<tr><th>net RX</th><td class="info_netRx"></td></tr>' +
+							'<tr><th>net TX</th><td class="info_netTx"></td></tr>' +
+							'<tr><th>voltage</th><td class="info_voltage"></td></tr>' +
+							'<tr><th>current</th><td class="info_current"></td></tr>' +
+							'<tr><th>CPU temp</th><td class="info_cputemp"></td></tr>' +
+							'<tr><th>PMU temp</th><td class="info_pmutemp"></td></tr>' +
+							'<tr><th>HDD temp</th><td class="info_hddtemp"></td></tr>' +
+							'<tr><th>hdd</th><td class="info_hddUsagePercent"></td></tr>' +
+							'<tr><th>cpu 0</th><td class="info_cpu0freq"></td></tr>' +
+							'<tr><th>cpu 1</th><td class="info_cpu1freq"></td></tr>' +
+							'<tr><th>Uptime</th><td class="info_uptime"></td></tr>' +
+							'<tr><th>IPv4</th><td class="info_IPv4"></td></tr>' +
               rtLogWatchBtn +
 					'</tbody>' +
 				 '</table>';
 	return table;
+}
+
+// update a html-infotable
+function updateInfoTable(id,jsonData){
+	var ramUsagePercent = 100 - Math.round((parseInt(jsonData["Free RAM"]) / parseInt(jsonData["Total RAM"]))*100);
+	var hddUsagePercent = 100 - Math.round((parseInt(jsonData.Disk.free.replace("G","")) / parseInt(jsonData.Disk.total.replace("G","")))*100);
+
+  //$("#" + id + ".info_load :first").html(jsonData.Load);
+
+  $("#" + id + " td.info_load").html(jsonData.Load);
+  $("#" + id + " td.info_ram").html('<meter max="100" value="'+ ramUsagePercent +'">'+ ramUsagePercent + '%</meter>' +
+  ramUsagePercent + '%');
+  $("#" + id + " td.info_netRx").html((parseInt(jsonData.rxbytes)/Math.pow(10,9)).toFixed(2) + " [GB]");
+  $("#" + id + " td.info_netTx").html((parseInt(jsonData.txbytes)/Math.pow(10,9)).toFixed(2) + " [GB]");
+  $("#" + id + " td.info_voltage").html((parseInt(jsonData.voltage)/Math.pow(10,6)).toFixed(3) + " [V]");
+  $("#" + id + " td.info_current").html((parseInt(jsonData.current)/Math.pow(10,6)).toFixed(3) + " [A]");
+  $("#" + id + " td.info_cputemp").html(jsonData.cputemp.replace("°C","") + " [°C]");
+  $("#" + id + " td.info_pmutemp").html(jsonData.pmutemp.replace("°C","")+ " [°C]");
+  $("#" + id + " td.info_hddtemp").html(jsonData.hddtemp.replace("°C","")+ " [°C]");
+  $("#" + id + " td.info_hddUsagePercent").html('<meter max="100" value="'+ hddUsagePercent +'">'+ hddUsagePercent + '%</meter>' +
+  hddUsagePercent + '%');
+  $("#" + id + " td.info_cpu0freq").html(parseInt(jsonData.cpu0freq)/1000 +  " [MHz]");
+  $("#" + id + " td.info_cpu1freq").html(parseInt(jsonData.cpu1freq)/1000 +  " [MHz]");
+  $("#" + id + " td.info_uptime").html(jsonData.Uptime);
+  $("#" + id + " td.info_IPv4").html(jsonData.IPv4);
 }
 
 function showNodeRtLogview(id){
