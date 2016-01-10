@@ -583,8 +583,8 @@ function showNodeCooltip(id){
 	// calculate screen position
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
-	// apply horizontal correction for legend (legend is 150px wide)
-	pos.x += 150;
+	// apply horizontal correction for legend (legend is ...px wide)
+	pos.x += $('#legendContainer').width();
 
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
 	var nodeColor = network.body.nodes[id].options.font.color;
