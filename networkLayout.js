@@ -13,6 +13,7 @@
  var cooltipDelays = {};
  var edgeToolTips = {};
  var poppedUpEdges = [];
+ var nodes;
  var images = {
 		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
@@ -46,7 +47,7 @@
 
 // draws given topology-data using vis.js (data from e.g. "generated_network_top.txt")
 function drawTopology(data){
-	var nodes = new vis.DataSet();
+	nodes = new vis.DataSet();
 	var edges = new vis.DataSet();
 
 	// process file-data
@@ -118,6 +119,11 @@ function drawTopology(data){
 			}
 		}
 	}
+
+  	if(getUrlVar("traffic") === "1"){
+      nodes.add({id: "trafficInfo", x: 0, y: 0, label: "Garthering traffic-data ...",
+      shape: "box", fixed: true, shadow: true, physics:false,  font: "50px arial black"});
+    }
 
 	// Graph will be drawn in the HTML-Element "graphContainer" [<div></div>]
 	var container = document.getElementById('graphContainer');
@@ -243,8 +249,8 @@ function drawTopology(data){
 			}
 		},updateInterval);
 
-    updateEdgeTraffic(numberOfNodes); // initial run
-		setInterval(function(){updateEdgeTraffic(numberOfNodes);},updateInterval);
+    updateEdgeTraffic(); // initial run
+		setInterval(function(){updateEdgeTraffic();},updateInterval);
 	}
 }
 
@@ -334,7 +340,7 @@ function highlightSelectedNodes(){
     nodes.update(updateArray);
 }
 
-function updateEdgeTraffic(numberOfNodes){
+function updateEdgeTraffic(){
 	console.log("updating edges");
 	console.log(clientTraffic); // log measured client-traffic
 
@@ -587,6 +593,7 @@ function stringStartsWith(string, prefix) {
 
 // show tooltip for node
 function showNodeCooltip(id){
+  if(isNaN(id)) return;
   var firstTime = ($("#" + id).length === 0);
 
   // calculate screen position
@@ -723,6 +730,13 @@ function requestJsonFile(id, callback){
 				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
 				if(clientJson[id].current.date != clientJson[id].previous.date){ // deal with reading the same file several times
 					/* different file! */
+          // remove startup message if present
+          var removedNodes = nodes.remove("trafficInfo");
+          if(removedNodes.length > 0){
+            // enough data has been received
+            updateEdgeTraffic();
+          }
+
 					clientTraffic[id] = (Math.abs(parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes))) +
 					(Math.abs(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes)));
 				}else {/* same file!" */}
