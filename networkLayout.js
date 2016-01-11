@@ -102,7 +102,7 @@ function drawTopology(data){
 			// add edge first two entries ... connected nodes ( a -> b)
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
-				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), shadow: true});
+				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), shadow: true, font: {align: 'bottom'}});
 			edgeToolTips[edgeId] = getEdgeInfoHtml(edgeInfo);
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
@@ -379,6 +379,7 @@ function updateEdgeTraffic(){
 	// update edge width ( trafficPerEdge / maxTraffic)
 	for(edgeId in allEdges) {
 		allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
+    allEdges[edgeId].label = Math.round((trafficPerEdge[edgeId] / 1000)) + " [kB]";
 	}
 
     // transform the object into an array and write it back
@@ -555,7 +556,7 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
         }else {
             network.selectNodes([]);
         }
-		
+
 				// highlight selected group-nodes
 				highlightSelectedNodes(network);
 			});
