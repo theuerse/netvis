@@ -355,7 +355,7 @@ function highlightSelectedNodes(){
 
 function updateEdgeTraffic(){
 	console.log("updating edges");
-	console.log(clientTraffic); // log measured client-traffic
+	//console.log(clientTraffic); // log measured client-traffic
 
   if(initialTrafficInfoReceived){
     $("#trafficDataInfo").hide();
@@ -379,7 +379,7 @@ function updateEdgeTraffic(){
 	// update edge width ( trafficPerEdge / maxTraffic)
 	for(edgeId in allEdges) {
 		allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
-    allEdges[edgeId].label = Math.round((trafficPerEdge[edgeId] / 1000)) + " [kB]";
+    allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
 	}
 
     // transform the object into an array and write it back
@@ -760,8 +760,12 @@ function requestJsonFile(id, callback){
           // indicate that at least 2 jsonFiles have arrived
           if(!initialTrafficInfoReceived) initialTrafficInfoReceived = true;
 
+          // time interval between prev. and current json-file
+          elapsedSeconds = Math.abs((parseDate(clientJson[id].current.date) - parseDate(clientJson[id].previous.date)))/1000;
+
 					clientTraffic[id] = (Math.abs(parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes))) +
 					(Math.abs(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes)));
+          clientTraffic[id] = Math.round(clientTraffic[id] / elapsedSeconds); // traffic now in bytes per second
 				}else {/* same file!" */}
 			}
 
@@ -770,6 +774,12 @@ function requestJsonFile(id, callback){
 			}
 		}
 	});
+}
+
+function parseDate(dateString){
+  // make Tue Jan 5 11:28:02 CET 2016 to Jan 5 12:07:01 2016 and return date-object
+  var parts = dateString.split(" ");
+  return Date.parse(parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[5]);
 }
 
 function parseJSON(jsonString){
