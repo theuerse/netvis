@@ -5,6 +5,7 @@
  var clientScreenFontColors = ["#FFFFFF","#FFFFFF","#000000","#FFFFFF"];
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var statusUpdateIntervals = {};
+ var initialTrafficInfoReceived = false;
  var logReadIntervals = {};
  var clientLogInfo = {};
  var clientJson = {};
@@ -28,6 +29,13 @@
  $(document).ready(function(){
 	    // hide javaScriptAlert - div, proof that js works
 	    $(javaScriptAlert).hide();
+
+      if(getUrlVar("traffic") !== "1"){
+        $("#trafficDataInfo").hide();
+      }else {
+        var spinner = new Spinner({color: '#3170a9',top: '25px',left: '25px',shadow: true}).spin();
+        $("#trafficDataInfo").append(spinner.el);
+      }
 
 	    // show loading animation (spinner)
 	    $("#graphContainer").append(
@@ -119,11 +127,6 @@ function drawTopology(data){
 			}
 		}
 	}
-
-  	if(getUrlVar("traffic") === "1"){
-      nodes.add({id: "trafficInfo", x: 0, y: 0, label: "Garthering traffic-data ...",
-      shape: "box", fixed: true, shadow: true, physics:false,  font: "50px arial black"});
-    }
 
 	// Graph will be drawn in the HTML-Element "graphContainer" [<div></div>]
 	var container = document.getElementById('graphContainer');
@@ -229,10 +232,12 @@ function drawTopology(data){
 	if(getUrlVar("rtlog") === "1"){
 		// start reading RealtimeLogs
 		clients.forEach(function(client) {
+      updateClientState(client);
 			logReadIntervals[client] = setInterval(function(){updateClientState(client);}, updateInterval);
 		});
 
 		// periodically update client-visuals and chart
+    updateDisplayedSVCData(clients);
 		setInterval(function(){updateDisplayedSVCData(clients);}, updateInterval);
 	}
 
@@ -343,6 +348,10 @@ function highlightSelectedNodes(){
 function updateEdgeTraffic(){
 	console.log("updating edges");
 	console.log(clientTraffic); // log measured client-traffic
+
+  if(initialTrafficInfoReceived){
+    $("#trafficDataInfo").hide();
+  }
 
 	var edges = network.body.data.edges;
 	var allEdges = edges.get({returnType:"Object"});
@@ -730,12 +739,8 @@ function requestJsonFile(id, callback){
 				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
 				if(clientJson[id].current.date != clientJson[id].previous.date){ // deal with reading the same file several times
 					/* different file! */
-          // remove startup message if present
-          var removedNodes = nodes.remove("trafficInfo");
-          if(removedNodes.length > 0){
-            // enough data has been received
-            updateEdgeTraffic();
-          }
+          // indicate that at least 2 jsonFiles have arrived
+          if(!initialTrafficInfoReceived) initialTrafficInfoReceived = true;
 
 					clientTraffic[id] = (Math.abs(parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes))) +
 					(Math.abs(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes)));
