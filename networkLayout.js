@@ -231,6 +231,11 @@ function drawTopology(data){
 	}
 
 	if(getUrlVar("traffic") === "1"){
+    // initial run
+    for(var id = 0; id < numberOfNodes; id++){
+      requestJsonFile(id,undefined);
+    }
+
 		// start continuously downloading json-files and cache them locally
 		setInterval(function(){
 			for(var id = 0; id < numberOfNodes; id++){
@@ -238,6 +243,7 @@ function drawTopology(data){
 			}
 		},updateInterval);
 
+    updateEdgeTraffic(numberOfNodes); // initial run
 		setInterval(function(){updateEdgeTraffic(numberOfNodes);},updateInterval);
 	}
 }
@@ -717,8 +723,8 @@ function requestJsonFile(id, callback){
 				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
 				if(clientJson[id].current.date != clientJson[id].previous.date){ // deal with reading the same file several times
 					/* different file! */
-					clientTraffic[id] = (parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes)) +
-					(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes));
+					clientTraffic[id] = (Math.abs(parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes))) +
+					(Math.abs(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes)));
 				}else {/* same file!" */}
 			}
 
