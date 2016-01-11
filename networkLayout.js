@@ -550,7 +550,12 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 
 	   servers.forEach(function(entry) {
 			 $('#grpHeader' + entry).bind('click', function (e) {
-				network.selectNodes($.merge([entry],groups[entry]));
+        if($('#grpHeader' + entry).attr("aria-expanded") === "true"){
+          	network.selectNodes($.merge([entry],groups[entry]));
+        }else {
+            network.selectNodes([]);
+        }
+		
 				// highlight selected group-nodes
 				highlightSelectedNodes(network);
 			});
@@ -863,6 +868,9 @@ function showNodeRtLogview(id){
           '<div id="plot'+ id +'"></div></div>');
   }
 	$("#rtLogview" + id).dialog({
+    beforeClose: function(event, ui){
+  		  delete clientDatasets[id];
+  	},
     width: 500,
     height: 300,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
