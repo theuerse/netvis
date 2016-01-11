@@ -6,6 +6,7 @@
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var statusUpdateIntervals = {};
  var initialTrafficInfoReceived = false;
+ var initialRtLogReceived = false;
  var logReadIntervals = {};
  var clientLogInfo = {};
  var clientJson = {};
@@ -33,8 +34,15 @@
       if(getUrlVar("traffic") !== "1"){
         $("#trafficDataInfo").hide();
       }else {
-        var spinner = new Spinner({color: '#3170a9',top: '25px',left: '25px',shadow: true}).spin();
+        var spinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
         $("#trafficDataInfo").append(spinner.el);
+      }
+
+      if(getUrlVar("rtlog") !== "1"){
+        $("#rtLogInfo").hide();
+      }else {
+        var spinner2 = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
+        $("#rtLogInfo").append(spinner2.el);
       }
 
 	    // show loading animation (spinner)
@@ -402,6 +410,7 @@ function updateClientState(id){
 		// TODO: check dates?
 		//if((clientLogInfo[id] === undefined || Date.parse(clientLogInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4]))
 		clientLogInfo[id] = clientInfo;
+    initialRtLogReceived = true; // we received a rtlog-file
 		//console.log("updating logInfo for PI_"+id);
 
     // Update svc layer chart
@@ -434,6 +443,9 @@ function updateClientRepresentations(clients){
 }
 
 function updateDisplayedSVCData(clients){
+      if(initialRtLogReceived){
+          $("#rtLogInfo").hide();
+      }
 			// update individual client - images
 			updateClientRepresentations(clients);
 
