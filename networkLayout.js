@@ -149,7 +149,7 @@ function drawTopology(data){
 
 	var options = {
 		// specify randomseed => network is the same at every startup
-		autoResize: false,
+		autoResize: true,
 		height: '100%',
 		layout:{randomSeed: seed},
 		edges: {
@@ -226,16 +226,6 @@ function drawTopology(data){
 			toggleCooltipPinned(params.nodes[0]);
 		}
 	});
-
-	 $(window).resize(function(){
-			var options = {offset: {x:0,y:0},
-				duration: 1000,
-				easingFunction: "easeInOutQuad"
-		};
-		network.redraw();
-		network.fit({animation:options});
-		});
-
 
 	if(getUrlVar("rtlog") === "1"){
 		// start reading RealtimeLogs
