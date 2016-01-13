@@ -850,24 +850,30 @@ function updateInfoTable(id,jsonData){
 }
 
 function updateNodeRtLogView(id, logfile){
-  console.log("trying to update logRtView for pi" + id);
-  if(clientCharts[id] === undefined) return;
+  if((!$("#rtLogview" + id).is(":visible")) || (clientCharts[id] === undefined)) return;
 
   // seperate lines
-  /*var lines = logfile.split("\n");
+  var newEntries = [];
+  var lines = logfile.split("\n");
+  var quality;
+
   for(var index in lines){
     var columns = lines[index].split("\t");
-    if(columns <= 1) continue;
-    var entry = {x: columns[0], y: parseInt(columns[4])};
-    clientDatasets[id].add(entry);
-    if(index > 5)break;
-  }*/
- clientCharts[id].flow({
-       columns: [
-         ['sample', 1, 1, 2, 1],
-       ],
-       length: 0,
-     });
+    if((columns.length < 5) || (parseInt(columns[2]) <= clientCharts[id].lastSegmentNumber)) continue;
+
+    if(!isNaN(columns[4])){newEntries.push(parseInt(columns[4])+1);} // add 1 to segmentRepId for chart's sake
+  }
+
+if(newEntries.length > 0){
+  console.log("added " + newEntries.length +" items to chart" + id);
+  clientCharts[id].chart.flow({
+        columns: [
+          ['sample'].concat(newEntries),
+        ],
+        length: 0,
+      });
+  clientCharts[id].lastSegmentNumber += newEntries.length;
+}
 }
 
 function showNodeRtLogview(id){
@@ -884,16 +890,14 @@ function showNodeRtLogview(id){
           '<div id="chart'+ id +'"></div></div>');
   }
 	$("#rtLogview" + id).dialog({
-    beforeClose: function(event, ui){
-  		  delete clientCharts[id];
-  	},
     width: 600,
     height: 400,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
   });
 
   if(firstTime){
-    clientCharts[id] = c3.generate({
+    clientCharts[id] = {chart: {}, lastSegmentNumber: 0};
+    clientCharts[id].chart = c3.generate({
         bindto: '#chart' + id,
         data: {
             columns: [ // lvl + 1  for display purposes
@@ -902,6 +906,9 @@ function showNodeRtLogview(id){
              types: {
                 sample: 'area-step',
             },
+        },
+        transition: {
+            duration: 0
         },
         axis : {
             x: {
