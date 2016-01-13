@@ -531,8 +531,11 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 
 	  // add additional information
 	  // min-/ max-Bitrate
-	  $('#legendList').append('<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0] + '[kbits]</li>');
-	  $('#legendList').append('<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbits]</li>');
+    // TODO: display of min-/max bitrate of disabled for now
+    /*
+    $('#legendList').append('<li class="list-group-item"><b>min bitrate: </b>' + bitrateBounds[0] + '[kbps]</li>');
+	  $('#legendList').append('<li class="list-group-item"><b>max bitrate: </b>' + bitrateBounds[1] + '[kbps]</li>');
+    */
 
 	  // add group information
 	  var groupsInfo = "";
@@ -886,10 +889,17 @@ function showNodeRtLogview(id){
 	pos.x += $('#legendContainer').width();
 
   if(firstTime){
-    $("body").append('<div id="rtLogview' + id + '" title="Last consumed layer-quality of PI' + id + '" >' +
+    $("body").append('<div id="rtLogview' + id + '" title="Pi #' + id + '" >' +
           '<div id="chart'+ id +'"></div></div>');
   }
+
+  var nodeColor = network.body.nodes[id].options.font.color;
+
 	$("#rtLogview" + id).dialog({
+    create: function(event, ui) {
+			widget = $(this).dialog("widget");
+			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
+		},
     width: 600,
     height: 400,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
