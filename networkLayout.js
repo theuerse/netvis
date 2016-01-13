@@ -10,7 +10,7 @@
  var logReadIntervals = {};
  var clientLogInfo = {};
  var clientJson = {};
- var clientDatasets = {};
+ var clientCharts = {};
  var clientTraffic = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
@@ -851,7 +851,7 @@ function updateInfoTable(id,jsonData){
 
 function updateNodeRtLogView(id, logfile){
   console.log("trying to update logRtView for pi" + id);
-  if(clientDatasets[id] === undefined) return;
+  if(clientCharts[id] === undefined) return;
 
   // seperate lines
   /*var lines = logfile.split("\n");
@@ -862,7 +862,12 @@ function updateNodeRtLogView(id, logfile){
     clientDatasets[id].add(entry);
     if(index > 5)break;
   }*/
- clientDatasets[id].add({x: vis.moment(), y: 1});
+ clientCharts[id].flow({
+       columns: [
+         ['sample', 1, 1, 2, 1],
+       ],
+       length: 0,
+     });
 }
 
 function showNodeRtLogview(id){
@@ -876,32 +881,55 @@ function showNodeRtLogview(id){
 
   if(firstTime){
     $("body").append('<div id="rtLogview' + id + '" title="Last consumed layer-quality of PI' + id + '" >' +
-          '<div id="plot'+ id +'"></div></div>');
+          '<div id="chart'+ id +'"></div></div>');
   }
 	$("#rtLogview" + id).dialog({
     beforeClose: function(event, ui){
-  		  delete clientDatasets[id];
+  		  delete clientCharts[id];
   	},
-    width: 500,
-    height: 300,
+    width: 600,
+    height: 400,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
   });
 
   if(firstTime){
-    var container = document.getElementById('plot'+id);
-    var dataset = new vis.DataSet();
-    clientDatasets[id] = dataset;
-    var options = {
-         style:'bar',
-         barChart: {width:20, align:'center'}, // align: left, center, right
-         drawPoints: false,
-         dataAxis: {
-             icons:true
-         },
-         orientation:'top'
-     };
-     var graph2d = new vis.Graph2d(container, dataset, options);
-     console.log(graph2d);
+    clientCharts[id] = c3.generate({
+        bindto: '#chart' + id,
+        data: {
+            columns: [ // lvl + 1  for display purposes
+                ['sample']
+            ],
+             types: {
+                sample: 'area-step',
+            },
+        },
+        axis : {
+            x: {
+                label: {
+                    text: 'Segment Number',
+                    position: 'outer-center'
+                }
+            },
+            y : {
+                label: {
+                    text: 'Layer',
+                    position: 'outer-middle'
+                },
+                tick: {
+                    // change displayed y-value
+                    format: function (d) {
+                      if(((d-1) < 0) || !Number.isInteger(d)) return "";
+                       return (d-1);
+                     }
+                }
+            }
+        },
+        tooltip: {show: false},
+        subchart: {show: true},
+        zoom: {enabled: true},
+        interaction: {enabled: true},
+        legend: {show: false},
+    });
   }
 }
 
