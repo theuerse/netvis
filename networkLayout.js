@@ -5,6 +5,7 @@
  var clientScreenFontColors = ["#FFFFFF","#FFFFFF","#000000","#FFFFFF"];
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var NodeUpdateIntervals = {};
+ var edgeUpdateInterval;
  var rtLogNodeUpdateIntervals = {};
  var initialTrafficInfoReceived = false;
  var initialRtLogReceived = false;
@@ -20,6 +21,7 @@
  var cooltipDelays = {};
  var edgeToolTips = {};
  var poppedUpEdges = [];
+ var initialEdgeWidths = {};
  var mode = {traffic: false, rtlog: false}; // delineates the current mode of operation
  var nodes;
  var clients = []; // array containing the ids of all clients
@@ -40,15 +42,13 @@
 // Main Entry Point of the Program
 //
  $(document).ready(function(){
-      // TODO: debug get-param controlled
-      changeModeOfOperation(getUrlVar("traffic") === "1",getUrlVar("rtlog") === "1");
 	    // hide javaScriptAlert - div, proof that js works
 	    $(javaScriptAlert).hide();
 
       //add busy - indicators
       var trafficSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
-      $("#trafficDataInfo").append(trafficSpinner.el);
-      $("#trafficDataInfo").hide();
+      $("#trafficBusyIndicator").append(trafficSpinner.el);
+      $("#trafficBusyIndicator").hide();
 
       var rtLogSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
       $("#rtLogInfo").append(rtLogSpinner.el);
@@ -87,18 +87,31 @@
 function changeModeOfOperation(traffic, rtlog){
   // update buttons in legend
   //break down the old
+
+  // cleanup traffic-stuff
+  $("#trafficBusyIndicator").hide(); // hide trafficBusyIndicator (if present)
+  if(edgeUpdateInterval !== undefined) clearInterval(edgeUpdateInterval); // stop continuously updating edges
+  updateEdgeTraffic(false); // reset edges
+  //TODO: remove all nodes from requestedJsonFiles which aren't open in a cooltip
+
+ // cleanup rtLog-stuff
+
 //TODO: Do that! (break down the old)
   mode = {traffic: traffic, rtlog: rtlog}; // update mode
 
     // start the new
   if(traffic){
+    // display busy-indicator
+    $("#trafficBusyIndicator").show();
+
     // initial run
-    for(var id = 0; id < numberOfNodes; id++){
-      getJsonFile(id,undefined);
+    for(var id = 0; id < nodes.length; id++){
+      // add all Node-ids to the list of jsonfiles periodically requested
+      setJsonFileRequestState(id,true);
     }
 
-    updateEdgeTraffic(); // initial run
-    setInterval(function(){updateEdgeTraffic();},updateInterval);
+    updateEdgeTraffic(true); // initial run
+    edgeUpdateInterval = setInterval(function(){updateEdgeTraffic(true);},updateInterval);
   }
 
   if(rtlog){
@@ -152,12 +165,13 @@ function drawTopology(data){
 			// add edges
 			// lines[index] contains edge-information
 			edgeInfo = lines[index].split(",");
-
+      var width =  ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10);
 			// add edge first two entries ... connected nodes ( a -> b)
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
-				to: edgeInfo[1], width: ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10), shadow: true, font: {align: 'bottom'}});
+				to: edgeInfo[1], width: width, shadow: true, font: {align: 'bottom'}});
 			edgeToolTips[edgeId] = getEdgeInfoHtml(edgeInfo);
+      initialEdgeWidths[edgeId] = width;
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -361,37 +375,42 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 
 	  // get params
 	   var seed = getUrlVar("seed");
-	   var rtlog = getUrlVar("rtlog");
-	   var traffic = getUrlVar("traffic");
 
 	  // add random-seed btn
 	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-		getParamString({seed: Math.floor((Math.random() * 1000) + 1), rtlog: rtlog, traffic: traffic}) +'" class="btn btn-default">random seed</a></li>');
+		getParamString({seed: Math.floor((Math.random() * 1000) + 1)}) +'" class="btn btn-default">random seed</a></li>');
 
-	 // add traffic - watch selector
-	 if(traffic === "1"){
-			$('#legendList').append('<li class="list-group-item"><a onlclick="" href="' + window.location.pathname +
-			getParamString({seed: seed, rtlog: rtlog, traffic: ""}) + '" class="btn btn-danger">ignore traffic</a></li>');
-	 }
-	 else{
-		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-				getParamString({seed: seed, rtlog: rtlog, traffic: "1"}) + '" class="btn btn-success">watch traffic</a></li>');
-	 }
+    // add toggle-button for traffic
+    $('#legendList').append('<li class="list-group-item">' +
+        '<label for="trafficToggle">watch traffic</label>'+
+        '<input type="checkbox" id="trafficToggle" />' +
+    '</li>');
+    $("#trafficToggle").button();
+    $('#trafficToggle').bind('change', function(){
+      if($(this).is(':checked')){
+          $(this).button('option', 'label', "ignore traffic");
+          changeModeOfOperation(true,mode.rtlog);
+        }else{
+          $(this).button('option', 'label', "watch traffic");
+          changeModeOfOperation(false,mode.rtlog);
+        }
+      });
 
-	 // add realtime-logging - selector
-	 if(rtlog === "1"){
-			$('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-			getParamString({seed: seed, rtlog: "", traffic: traffic}) + '" class="btn btn-danger">ignore rt-logs</a></li>');
-
-			// add svc-layer chart
-			$('#legendList').append('<li class="list-group-item"><div id="canvas-holder" style="width:100%">' +
-				'<canvas id="chart-area" width="150" height="300"></canvas>' +
-			'</div></li>');
-	 }
-	 else{
-		  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-				getParamString({seed: seed, rtlog: "1", traffic: traffic}) + '" class="btn btn-success">read rt-logs</a></li>');
-	 }
+      // add toggle-button for traffic
+      $('#legendList').append('<li class="list-group-item">' +
+          '<label for="rtLogToggle">read rtLogs</label>'+
+          '<input type="checkbox" id="rtLogToggle" />' +
+      '</li>');
+      $("#rtLogToggle").button();
+      $('#rtLogToggle').bind('change', function(){
+        if($(this).is(':checked')){
+            $(this).button('option', 'label', "ignore rtLogs");
+            changeModeOfOperation(mode.traffic,true);
+          }else{
+            $(this).button('option', 'label', "read rtLogs");
+            changeModeOfOperation(node.traffic,false);
+          }
+        });
 }
 
 // hightlights all currently selected nodes
@@ -465,11 +484,11 @@ function highlightSelectedNodes(){
 //
 
 // updates the visual appearance of all edges (according to collected traffic-data)
-function updateEdgeTraffic(){
-	console.log("updating edges");
+function updateEdgeTraffic(displayTraffic){
+  console.log("updating edges");
 
   if(initialTrafficInfoReceived){
-    $("#trafficDataInfo").hide(); // TODO: wie funktioniert das jetzt?
+      $("#trafficBusyIndicator").hide();
   }
 
 	var edges = network.body.data.edges;
@@ -489,8 +508,14 @@ function updateEdgeTraffic(){
 
 	// update edge width ( trafficPerEdge / maxTraffic)
 	for(edgeId in allEdges) {
-		allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
-    allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
+    if(displayTraffic){
+      allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
+      allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
+    }else {
+      allEdges[edgeId].width = initialEdgeWidths[edgeId];
+      allEdges[edgeId].label = "";
+    }
+
 	}
 
     // transform the object into an array and write it back
@@ -661,19 +686,15 @@ function hideNodeCooltip(id){
 	// and are member of class 'active'
 	if($("#pin" + id + '.active').length === 0){
     // unsubscribe from updates
+    // if not watching traffic, unsubscribe from periodical jsonfileReq.
     if(!mode.traffic){
-      setJsonFileRequestState(getJsonFileName(id),false);
+      setJsonFileRequestState(id,false);
     }
 		// shut down status - refresh
     console.log("clearing upateIntervals for PI" + id);
 		clearInterval(NodeUpdateIntervals[id]);
     delete NodeUpdateIntervals[id];
     //delete rtLogNodeUpdateIntervals[id]; //TODO: needed elsewhere
-
-    // if not watching traffic, unsubscribe from periodical jsonfileReq.
-    if(!mode.traffic){
-      setJsonFileRequestState(id,false);
-    }
 
 		// Only remove non-pinned cooltips
 		$("#" + id).parent().hide(function(){$("#" + id).remove();});
