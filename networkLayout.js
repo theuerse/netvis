@@ -9,8 +9,10 @@
  var initialTrafficInfoReceived = false;
  var initialRtLogReceived = false;
  var logReadIntervals = {};
+ var getFilesInterval;
  var lastConsumedSegmentInfo = {};
- var requestedFiles = [];
+ var requestedJsonFiles = [];
+ var requestedRtLogFiles = [];
  var clientJson = {};
  var clientRtLogs = {};
  var clientCharts = {};
@@ -20,6 +22,7 @@
  var poppedUpEdges = [];
  var mode = {traffic: false, rtlog: false}; // delineates the current mode of operation
  var nodes;
+ var clients = []; // array containing the ids of all clients
  var images = {
 		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
@@ -57,15 +60,25 @@
 			new Spinner({color: '#dcdcdc', scale: 3}).spin().el);
 
 			setupSvgCache();
-            console.log("ready!");
-            // get file directly
-            $.get(topologyFilePath, function(data) {
-                drawTopology(data);
-            })
-            .fail(function() {
-                console.log("Failed to retrieve Topology-File (path correct?)");
-            });
 
+      console.log("ready!");
+      // get file directly
+      $.get(topologyFilePath, function(data) {
+            drawTopology(data);
+
+            // initially, request json-files for all nodes
+            for(var i=0; i < nodes.length; i++){
+              setJsonFileRequestState(i,true);
+            }
+            getFiles();
+            requestedJsonFiles = [];
+
+            // start getting requested Files periodically
+            getFilesInterval = setInterval(function(){getFiles();},updateInterval);
+      })
+      .fail(function() {
+            console.log("Failed to retrieve Topology-File (path correct?)");
+      });
 });
 
 
@@ -83,13 +96,6 @@ function changeModeOfOperation(traffic, rtlog){
     for(var id = 0; id < numberOfNodes; id++){
       getJsonFile(id,undefined);
     }
-
-    // start continuously downloading json-files and cache them locally
-    setInterval(function(){
-      for(var id = 0; id < numberOfNodes; id++){
-        getJsonFile(id,undefined);
-      }
-    },updateInterval);
 
     updateEdgeTraffic(); // initial run
     setInterval(function(){updateEdgeTraffic();},updateInterval);
@@ -123,7 +129,6 @@ function drawTopology(data){
 	var part = -1;
 	var edgeInfo;  // holds information about a single edge
 	var nodeInfo;  // holds information about a single node
-	var clients = []; // array containing the ids of all clients
 	var servers = []; // array containing the ids of all servers
 	var groups = {}; // contains server -> clients entries
 	var numberOfNodes = 0; // total number of nodes
@@ -239,13 +244,14 @@ function drawTopology(data){
 
     // show cooltip when mouse enters/hovers node (+ 400[ms] delay)
      network.on("hoverNode", function (params) {
-		cooltipDelays[params.node] = setInterval(function(){showNodeCooltip(params.node, network);},400);
+		cooltipDelays[params.node] = setTimeout(function(){showNodeCooltip(params.node, network);},400);
     });
 
     // hide cooltip when mouse leaves node
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
-        clearInterval(cooltipDelays[params.node]); // cancel cooltip
+        clearInterval(NodeUpdateIntervals[params.node]); // cancel periodically updating cooltip
+        clearInterval(cooltipDelays[params.node]); // cancel cooltip - "popping up"
     });
 
     network.on("hoverEdge", function (params) {
@@ -591,6 +597,7 @@ function toggleCooltipPinned(id){
 
 // create and show Nodecooltip for a given client
 function showNodeCooltip(id){
+  console.log("showNodeCoolTip!");
   if(isNaN(id)) return;
   var firstTime = ($("#" + id).length === 0);
 
@@ -612,9 +619,12 @@ function showNodeCooltip(id){
       // setup periodic updates
       if(NodeUpdateIntervals[id] === undefined){
         // subscribe to periodical updates
-        setFileRequestState(getPiFileName("id"),true);
+        setJsonFileRequestState(id,true);
+
+        // try to update immediately (json file may be already present)
+        updateNodeCooltip(id);
         // setup periodic ui - updates
-        NodeUpdateIntervals[id] = setInterval(updateNodeCooltip,updateInterval);
+        NodeUpdateIntervals[id] = setInterval(function(){updateNodeCooltip(id);},updateInterval);
       }
     },
 		beforeClose: function(event, ui){
@@ -653,15 +663,16 @@ function hideNodeCooltip(id){
 	if($("#pin" + id + '.active').length === 0){
     // unsubscribe from updates
     if(!mode.traffic){
-      setFileRequestState(getPiFileName("id"),false);
+      setJsonFileRequestState(getJsonFileName(id),false);
     }
 		// shut down status - refresh
 		clearInterval(NodeUpdateIntervals[id]);
-    delete rtLogNodeUpdateIntervals[id];
+    delete NodeUpdateIntervals[id];
+    //delete rtLogNodeUpdateIntervals[id]; //TODO: needed elsewhere
 
     // if not watching traffic, unsubscribe from periodical jsonfileReq.
     if(!mode.traffic){
-      setFileRequestState(getPiFileName(id),false);
+      setJsonFileRequestState(id,false);
     }
 
 		// Only remove non-pinned cooltips
@@ -671,6 +682,7 @@ function hideNodeCooltip(id){
 
 // updates the node-cooltip of a given client(-id)
 function updateNodeCooltip(id){
+  console.log("updating node cooltip #" + id);
     // use local jsonFile-cache
 	// update content
 	if(clientJson[id] === undefined) return; // no json retrieved yet
@@ -899,15 +911,27 @@ function getEdgeInfoHtml(edgeInfo){
 // Utility Methods
 //
 
+function getFiles(){
+  requestedJsonFiles.forEach(function(id){
+    console.log("fetching jsonfile for" + id);
+    getJsonFile(id,undefined);
+  });
+  requestedRtLogFiles.forEach(function(id){
+    console.log("fetching jsonfile for" + id);
+    getRtLogFile(id);
+  });
+}
+
 // requests a given json-file, than stores it in a local chache (prev and current .json)
-function getJsonFile(jsonFilePath, callback){
+function getJsonFile(id, callback){
 	var rawJsonString;
      // get file directly
      $.ajax({
-		url: jsonFilePath,
+		url: getJsonFileName(id),
 		data: rawJsonString,
 		dataType: 'text',
 		success: function(rawJsonString) {
+      console.log("received " + getJsonFileName(id));
 			var jsonData = parseJSON(rawJsonString);
 			if(jsonData === null) return;
 
@@ -976,23 +1000,34 @@ function getRtLogFile(id){
   });
 }
 
-function getPiFileName(id){
+function getJsonFileName(id){
  return  jsonDirectory + "PI" + id + ".json";
 }
 
 function getRtLogFileName(id){
   return "consumer-PI_" + id + ".log";
 }
-// updates global list of files to get periodically, imitate set-behaviour
-function setFileRequestState(filename, fetchPeriodically){
-  var index = requestedFiles.indexof(filename);
+
+// updates global list of json-files to get periodically, imitate set-behaviour
+function setJsonFileRequestState(id, fetchPeriodically){
+  var index = requestedJsonFiles.indexOf(id);
   if(fetchPeriodically && (index === -1)){
-    requestedFiles.push(filename);
+    requestedJsonFiles.push(id);
   }
   if(!fetchPeriodically && (index > -1)){
-    requestedFiles.splice(index,1);
+    requestedJsonFiles.splice(index,1);
   }
 }
+
+// updates global list of rtLog-files to get periodically, imitate set-behaviour
+// Either get all of them, or
+function setRtLogFileRequestState(fetchAllPeriodically){
+  requestedRtLogFiles = [];
+  if(fetchAllPeriodically){
+    requestedRtLogFiles = clients.slice(); // copy whole array
+  }
+}
+
 
 // Runs through given edge-entries one time, determining the
 // minimal / maximal Bandwith
@@ -1020,6 +1055,11 @@ function getMinMaxBandwidth(lines){
 // checks if a given string starts with given prefix
 function stringStartsWith(string, prefix) {
 	return string.slice(0,prefix.length) == prefix;
+}
+
+// checks if a given string ends with a given suffix
+function stringEndsWith(string, suffix){
+  return string.indexOf(suffix, string.length - suffix.length) !== -1;
 }
 
 // returns the value of a GET-param identified by 'name'
