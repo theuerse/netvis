@@ -250,7 +250,6 @@ function drawTopology(data){
     // hide cooltip when mouse leaves node
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
-        clearInterval(NodeUpdateIntervals[params.node]); // cancel periodically updating cooltip
         clearInterval(cooltipDelays[params.node]); // cancel cooltip - "popping up"
     });
 
@@ -666,6 +665,7 @@ function hideNodeCooltip(id){
       setJsonFileRequestState(getJsonFileName(id),false);
     }
 		// shut down status - refresh
+    console.log("clearing upateIntervals for PI" + id);
 		clearInterval(NodeUpdateIntervals[id]);
     delete NodeUpdateIntervals[id];
     //delete rtLogNodeUpdateIntervals[id]; //TODO: needed elsewhere
@@ -682,7 +682,7 @@ function hideNodeCooltip(id){
 
 // updates the node-cooltip of a given client(-id)
 function updateNodeCooltip(id){
-  console.log("updating node cooltip #" + id);
+  console.log("->updating node cooltip #" + id);
     // use local jsonFile-cache
 	// update content
 	if(clientJson[id] === undefined) return; // no json retrieved yet
