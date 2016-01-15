@@ -6,6 +6,7 @@
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var NodeUpdateIntervals = {};
  var edgeUpdateInterval;
+ var svcVisualsUpdateInterval;
  var rtLogNodeUpdateIntervals = {};
  var initialTrafficInfoReceived = false;
  var initialRtLogReceived = false;
@@ -51,8 +52,8 @@
       $("#trafficBusyIndicator").hide();
 
       var rtLogSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
-      $("#rtLogInfo").append(rtLogSpinner.el);
-      $("#rtLogInfo").hide();
+      $("#rtLogBusyIndicator").append(rtLogSpinner.el);
+      $("#rtLogBusyIndicator").hide();
 
 
 	    // show loading animation (spinner)
@@ -92,12 +93,35 @@ function changeModeOfOperation(traffic, rtlog){
   $("#trafficBusyIndicator").hide(); // hide trafficBusyIndicator (if present)
   if(edgeUpdateInterval !== undefined) clearInterval(edgeUpdateInterval); // stop continuously updating edges
   updateEdgeTraffic(false); // reset edges
-  //TODO: remove all nodes from requestedJsonFiles which aren't open in a cooltip
 
- // cleanup rtLog-stuff
+  // remove all nodes from requestedJsonFiles which aren't open in a cooltip
+  var nodesOpenInACooltip = [];
+  for(var id = 0; id < nodes.length; id++){
+    if($("#" + id).length > 0) nodesOpenInACooltip.push(id);
+  }
+  requestedJsonFiles = nodesOpenInACooltip;
+
+  // cleanup rtLog-stuff
+  $("#rtLogBusyIndicator").hide(); // hide rtLogBusyIndicator (if present)
+
+  // stop rtLogfiles from being fetched periodically
+  setRtLogFileRequestState(false);
+
+  // clear svc-visuals update interval
+  if(svcVisualsUpdateInterval !== undefined) clearInterval(svcVisualsUpdateInterval);
+
+  // remove SVC-LayerChart
+  $("#svc-chart-item").remove();
+
+  // reset the client-images
+  resetClientImages(clients);
+
+
 
 //TODO: Do that! (break down the old)
-  mode = {traffic: traffic, rtlog: rtlog}; // update mode
+  mode = {traffic: traffic, rtlog: rtlog}; // update mode of operation
+
+
 
     // start the new
   if(traffic){
@@ -105,7 +129,7 @@ function changeModeOfOperation(traffic, rtlog){
     $("#trafficBusyIndicator").show();
 
     // initial run
-    for(var id = 0; id < nodes.length; id++){
+    for(id = 0; id < nodes.length; id++){
       // add all Node-ids to the list of jsonfiles periodically requested
       setJsonFileRequestState(id,true);
     }
@@ -115,15 +139,24 @@ function changeModeOfOperation(traffic, rtlog){
   }
 
   if(rtlog){
+    // display busy-indicator
+    $("#rtLogBusyIndicator").show();
+
+    // SVC-LayerChart to legend
+    // add svc-layer chart
+		$('#legendList').append('<li id="svc-chart-item" class="list-group-item"><div id="canvas-holder" style="width:100%">' +
+      '<canvas id="chart-area" width="150" height="300"></canvas>' +
+		'</div></li>');
+
     // start reading RealtimeLogs
-    clients.forEach(function(client) {
-      updateClientState(client);
-      logReadIntervals[client] = setInterval(function(){updateClientState(client);}, updateInterval);
-    });
+    // add all rtLogFiles to the Files we periodically get
+    setRtLogFileRequestState(true);
+
+    // try to update visuals (client-images and chart) a first time
+    updateDisplayedSVCData(clients);
 
     // periodically update client-visuals and chart
-    updateDisplayedSVCData(clients);
-    setInterval(function(){updateDisplayedSVCData(clients);}, updateInterval);
+    svcVisualsUpdateInterval = setInterval(function(){updateDisplayedSVCData(clients);}, updateInterval);
   }
 
 }
@@ -408,7 +441,7 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
             changeModeOfOperation(mode.traffic,true);
           }else{
             $(this).button('option', 'label', "read rtLogs");
-            changeModeOfOperation(node.traffic,false);
+            changeModeOfOperation(mode.traffic,false);
           }
         });
 }
@@ -546,16 +579,33 @@ function updateClientImages(clients){
 	nodes.update(updatedNodes);
 }
 
+// reverts the clients to their default appearance
+function resetClientImages(clients){
+  var updatedNodes = [];
+  var nodes = network.body.data.nodes;
+  var allNodes = nodes.get({returnType:"Object"});
+
+  var node;
+  clients.forEach(function(clientId) {
+    node = allNodes[clientId];
+    node.image = getClientImageUrl("",clientScreenFillColors[0],clientScreenFontColors[0]);
+    updatedNodes.push(node);
+  });
+
+  nodes.update(updatedNodes);
+}
+
 // Updates all clientImages and the svc-donut-chart
 function updateDisplayedSVCData(clients){
       if(initialRtLogReceived){
-          $("#rtLogInfo").hide();  //TODO: wie geht das jetzt?
-      }
-			// update individual client - images
-			updateClientImages(clients);
+          $("#rtLogBusyIndicator").hide();
 
-			// update statistics chart
-			updateSVCLayerChart();
+          // update individual client - images
+          updateClientImages(clients);
+
+          // update statistics chart
+          updateSVCLayerChart();
+      }
 }
 
 // updates the donut-chart displaying the current count
@@ -938,7 +988,7 @@ function getFiles(){
     getJsonFile(id,undefined);
   });
   requestedRtLogFiles.forEach(function(id){
-    console.log("fetching jsonfile for" + id);
+    console.log("fetching rtLogFile for" + id);
     getRtLogFile(id);
   });
 }
