@@ -531,7 +531,6 @@ function highlightSelectedNodes(){
 
 // updates the visual appearance of all edges (according to collected traffic-data)
 function updateEdgeTraffic(displayTraffic){
-  console.log("updating edges");
 
   if(initialTrafficInfoReceived){
       $("#trafficBusyIndicator").hide();
@@ -684,7 +683,6 @@ function toggleCooltipPinned(id){
 
 // create and show Nodecooltip for a given client
 function showNodeCooltip(id){
-  console.log("showNodeCoolTip!");
   if(isNaN(id)) return;
   var firstTime = ($("#" + id).length === 0);
 
@@ -754,7 +752,6 @@ function hideNodeCooltip(id){
       setJsonFileRequestState(id,false);
     }
 		// shut down status - refresh
-    console.log("clearing upateIntervals for PI" + id);
 		clearInterval(NodeUpdateIntervals[id]);
     delete NodeUpdateIntervals[id];
     //delete rtLogNodeUpdateIntervals[id]; //TODO: needed elsewhere
@@ -766,7 +763,6 @@ function hideNodeCooltip(id){
 
 // updates the node-cooltip of a given client(-id)
 function updateNodeCooltip(id){
-  console.log("->updating node cooltip #" + id);
     // use local jsonFile-cache
 	// update content
 	if(clientJson[id] === undefined) return; // no json retrieved yet
@@ -995,11 +991,11 @@ function getEdgeInfoHtml(edgeInfo){
 
 function getFiles(){
   requestedJsonFiles.forEach(function(id){
-    console.log("fetching jsonfile for" + id);
+    //console.log("fetching jsonfile for" + id);
     getJsonFile(id,undefined);
   });
   requestedRtLogFiles.forEach(function(id){
-    console.log("fetching rtLogFile for" + id);
+    //console.log("fetching rtLogFile for" + id);
     getRtLogFile(id);
   });
 }
@@ -1013,7 +1009,7 @@ function getJsonFile(id, callback){
 		data: rawJsonString,
 		dataType: 'text',
 		success: function(rawJsonString) {
-      console.log("received " + getJsonFileName(id));
+      //console.log("received " + getJsonFileName(id));
 			var jsonData = parseJSON(rawJsonString);
 			if(jsonData === null) return;
 
