@@ -110,6 +110,19 @@ function changeModeOfOperation(traffic, rtlog){
   // clear svc-visuals update interval
   if(svcVisualsUpdateInterval !== undefined) clearInterval(svcVisualsUpdateInterval);
 
+  // clean up rtLogNodeUpdateIntervals
+  clients.forEach(function(entry){
+    if($("#rtLogview" + entry).length > 0){
+      // close svc-history-overview
+      $("#rtLogview" + entry).dialog('close'); 
+    }
+
+    // also remove the updateIntervals
+    if(rtLogNodeUpdateIntervals[entry] !== undefined){
+      clearInterval(rtLogNodeUpdateIntervals[entry]);
+    }
+  });
+
   // remove SVC-LayerChart
   $("#svc-chart-item").remove();
 
