@@ -17,7 +17,7 @@
  var requestedRtLogFiles = [];
  var clientJson = {};
  var clientRtLogs = {};
- var clientCharts = {};
+ var clientCharts = [];
  var clientTraffic = {};
  var cooltipDelays = {};
  var edgeToolTips = {};
@@ -114,7 +114,7 @@ function changeModeOfOperation(traffic, rtlog){
   clients.forEach(function(entry){
     if($("#rtLogview" + entry).length > 0){
       // close svc-history-overview
-      $("#rtLogview" + entry).dialog('close'); 
+      $("#rtLogview" + entry).dialog('close');
     }
 
     // also remove the updateIntervals
@@ -893,10 +893,10 @@ function showNodeRtLogview(id){
   });
 
   if(firstTime){
-    clientCharts[id] = {chart: {}, lastSegmentNumber: 0};
-    clientCharts[id].chart = c3.generate({
+    clientCharts[id] = c3.generate({
         bindto: '#chart' + id,
         data: {
+           x: 'x',
             columns: [ // lvl + 1  for display purposes
                 ['sample']
             ],
@@ -943,26 +943,24 @@ function updateNodeRtLogView(id, logfile){
 
   // seperate lines
   var newEntries = [];
+  var segmentNumbers=[];
   var lines = logfile.split("\n");
   var quality;
 
-  for(var index in lines){
-    var columns = lines[index].split("\t");
-    if((columns.length < 5) || (parseInt(columns[2]) <= clientCharts[id].lastSegmentNumber)) continue;
-
-    if(!isNaN(columns[4])){newEntries.push(parseInt(columns[4])+1);} // add 1 to segmentRepId for chart's sake
+  for(var index = Math.max(lines.length-200,0); index < lines.length; index++){
+      var columns = lines[index].split("\t");
+      if((columns.length < 5)) continue;
+      if(!isNaN(columns[2])) segmentNumbers.push(parseInt(columns[2]));
+      if(!isNaN(columns[4])){newEntries.push(parseInt(columns[4])+1);}
   }
 
-  if(newEntries.length > 0){
-    console.log("added " + newEntries.length +" items to chart" + id);
-    clientCharts[id].chart.flow({
+    clientCharts[id].load({
           columns: [
+            ['x'].concat(segmentNumbers),
             ['sample'].concat(newEntries),
           ],
           length: 0,
-      });
-      clientCharts[id].lastSegmentNumber += newEntries.length;
-    }
+    });
 }
 
 
