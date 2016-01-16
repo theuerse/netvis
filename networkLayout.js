@@ -316,6 +316,8 @@ function drawTopology(data){
         clearTimeout(edgeCoolTipTimeout);
         clearTimeout(nodeCoolTipTimeout); // there can ony be one ...
 		    nodeCoolTipTimeout = setTimeout(function(){showNodeCooltip(params.node);},400);
+        // clean up "left over" edgeCoolTips
+        cleanupNonPinnedEdgeCooltips();
     });
 
     // hide cooltip when mouse leaves node
@@ -903,6 +905,15 @@ function hideEdgeCooltip(id){
 		// Only remove non-pinned cooltips
 		$("#" + id).parent().hide(function(){$("#" + id).remove();});
 	}
+}
+
+function cleanupNonPinnedEdgeCooltips(){
+  var edges = network.body.data.edges;
+  var allEdges = edges.get({returnType:"Object"});
+
+  for(var edgeId in allEdges) {
+    hideEdgeCooltip(edgeId);
+  }
 }
 
 //
