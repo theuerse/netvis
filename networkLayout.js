@@ -18,7 +18,8 @@
  var clientRtLogs = {};
  var clientCharts = [];
  var clientTraffic = {};
- var cooltipDelays = {};
+ var nodeCoolTipTimeout = {};
+ var edgeCoolTipTimeout = {};
  var edgeInformation = {};
  var mode = {traffic: false, rtlog: false}; // delineates the current mode of operation
  var mousePosition = {x: 0, y: 0};
@@ -312,33 +313,39 @@ function drawTopology(data){
 
     // show cooltip when mouse enters/hovers node (+ 400[ms] delay)
     network.on("hoverNode", function (params) {
-		    cooltipDelays[params.node] = setTimeout(function(){showNodeCooltip(params.node);},400);
+        clearTimeout(edgeCoolTipTimeout);
+        clearTimeout(nodeCoolTipTimeout); // there can ony be one ...
+		    nodeCoolTipTimeout = setTimeout(function(){showNodeCooltip(params.node);},400);
     });
 
     // hide cooltip when mouse leaves node
     network.on("blurNode", function (params) {
         hideNodeCooltip(params.node);
-        clearInterval(cooltipDelays[params.node]); // cancel cooltip - "popping up"
+        clearTimeout(nodeCoolTipTimeout); // cancel cooltip - "popping up"
     });
 
     network.on("blurEdge", function(params){
+        clearTimeout(edgeCoolTipTimeout);
         hideEdgeCooltip(params.edge);
-        clearInterval(cooltipDelays[params.edge]);
     });
 
     network.on("hoverEdge", function (params) {
-     cooltipDelays[params.edge] = setTimeout(function(){showEdgeCooltip(params.edge, network);},400);
+     clearTimeout(edgeCoolTipTimeout);
+     edgeCoolTipTimeout = setTimeout(function(){showEdgeCooltip(params.edge);},400);
     });
 
     network.on("click", function (params){
-		if(params.nodes.length === 0){
+    if(params.nodes.length === 0){
 			highlightSelectedNodes(network); // perform group de-selection
 			$("#grpAccordion").accordion("option","active",false); // update legend
 		} else if(params.nodes.length == 1){
 			showNodeCooltip(params.nodes[0]);
 			toggleCooltipPinned(params.nodes[0]);
-		} else if(params.edges.length == 1){
-      tip(params.edges[0],network);
+		}
+
+    if(params.edges.length == 1){
+      console.log("toggling " + params.edges[0]);
+      showEdgeCooltip(params.edges[0],network);
       toggleCooltipPinned(params.edges[0]);
     }
 	});
@@ -421,8 +428,10 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	   var seed = getUrlVar("seed");
 
 	  // add random-seed btn
-	  $('#legendList').append('<li class="list-group-item"><a href="' + window.location.pathname +
-		getParamString({seed: Math.floor((Math.random() * 1000) + 1)}) +'" class="btn btn-default">random seed</a></li>');
+	  $('#legendList').append('<li class="list-group-item"><a id="seedBtn" href="' + window.location.pathname +
+		getParamString({seed: Math.floor((Math.random() * 1000) + 1)}) +'" class="btn btn-default">random </br> seed</a></li>');
+
+    $("#seedBtn" ).button();
 
     // add toggle-button for traffic
     $('#legendList').append('<li class="list-group-item">' +
@@ -848,7 +857,6 @@ function showEdgeCooltip(id){
   var edgeInfo = edgeInformation[id];
 
 	var title = 'Pi #' + edgeInfo.from + '&emsp; &#x21c4 &emsp;' + 'Pi #' + edgeInfo.to;
-  console.log("showing edge cooltip 2");
 
   var trafficInfo = (mode.traffic) ? "traffic info" : "";
 
@@ -867,7 +875,7 @@ function showEdgeCooltip(id){
 		},
 		create: function(event, ui) {
 			widget = $(this).dialog("widget");
-			widget.mouseleave(function(){hideEdgeCooltip(id);});
+			widget.mouseleave(function(){clearTimeout(edgeCoolTipTimeout); hideEdgeCooltip(id);});
 			$("button:first",widget).attr('id','pin'+id);
 			$(".ui-dialog-titlebar-close span:first", widget)
 				.removeClass("ui-icon-closethick")
