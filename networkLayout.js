@@ -10,7 +10,6 @@
  var rtLogNodeUpdateIntervals = {};
  var initialTrafficInfoReceived = false;
  var initialRtLogReceived = false;
- var logReadIntervals = {};
  var getFilesInterval;
  var lastConsumedSegmentInfo = {};
  var requestedJsonFiles = [];
@@ -20,12 +19,13 @@
  var clientCharts = [];
  var clientTraffic = {};
  var cooltipDelays = {};
- var edgeToolTips = {};
- var poppedUpEdges = [];
- var initialEdgeWidths = {};
+ var edgeInformation = {};
  var mode = {traffic: false, rtlog: false}; // delineates the current mode of operation
+ var mousePosition = {x: 0, y: 0};
  var nodes;
  var clients = []; // array containing the ids of all clients
+ var arrowRight = '<span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>';
+ var arrowLeft = '<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>';
  var images = {
 		router: ["res/img/blueRouter.svg","res/img/blueRouterGrey.svg"],
 		server: ["res/img/server.svg","res/img/serverGrey.svg"],
@@ -45,6 +45,12 @@
  $(document).ready(function(){
 	    // hide javaScriptAlert - div, proof that js works
 	    $(javaScriptAlert).hide();
+
+      $("body").mousemove(function(e) {
+        mousePosition.x = e.pageX;
+        mousePosition.y = e.pageY;
+      });
+
 
       //add busy - indicators
       var trafficSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
@@ -216,8 +222,10 @@ function drawTopology(data){
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
 				to: edgeInfo[1], width: width, shadow: true, font: {align: 'bottom'}});
-			edgeToolTips[edgeId] = getEdgeInfoHtml(edgeInfo);
-      initialEdgeWidths[edgeId] = width;
+
+      edgeInformation[edgeId]={from: edgeInfo[0], to: edgeInfo[1], bandwidthRight: edgeInfo[2],
+        bandwidthLeft: edgeInfo[3], delayRight: edgeInfo[4], delayLeft: edgeInfo[5], initialWidth: width,
+        traffic: undefined};
 		}else if(part == 2){
 			// update node type (Client / Server) => visual apperance
 			// and relationship type color (client and server have matching colors, for now)
@@ -303,8 +311,8 @@ function drawTopology(data){
     //
 
     // show cooltip when mouse enters/hovers node (+ 400[ms] delay)
-     network.on("hoverNode", function (params) {
-		cooltipDelays[params.node] = setTimeout(function(){showNodeCooltip(params.node, network);},400);
+    network.on("hoverNode", function (params) {
+		    cooltipDelays[params.node] = setTimeout(function(){showNodeCooltip(params.node);},400);
     });
 
     // hide cooltip when mouse leaves node
@@ -313,26 +321,13 @@ function drawTopology(data){
         clearInterval(cooltipDelays[params.node]); // cancel cooltip - "popping up"
     });
 
-    network.on("hoverEdge", function (params) {
-       var edges = network.body.data.edges;
-	   var edge = edges.get(params.edge);
-
-	   edge.title = edgeToolTips[params.edge];
-	   edges.update([edge]);
-	   poppedUpEdges.push(params.edge);
+    network.on("blurEdge", function(params){
+        hideEdgeCooltip(params.edge);
+        clearInterval(cooltipDelays[params.edge]);
     });
 
-     network.on("hidePopup", function (params) {
-	   var edges = network.body.data.edges;
-
-	   var changedEdges = [];
-	   for(index in poppedUpEdges){
-		   var edge = edges.get(poppedUpEdges[index]);
-		   edge.title = null;
-		   changedEdges.push(edge);
-	   }
-	   edges.update(changedEdges);
-	   poppedUpEdges = [];
+    network.on("hoverEdge", function (params) {
+     cooltipDelays[params.edge] = setTimeout(function(){showEdgeCooltip(params.edge, network);},400);
     });
 
     network.on("click", function (params){
@@ -340,9 +335,12 @@ function drawTopology(data){
 			highlightSelectedNodes(network); // perform group de-selection
 			$("#grpAccordion").accordion("option","active",false); // update legend
 		} else if(params.nodes.length == 1){
-			showNodeCooltip(params.nodes[0], network);
+			showNodeCooltip(params.nodes[0]);
 			toggleCooltipPinned(params.nodes[0]);
-		}
+		} else if(params.edges.length == 1){
+      tip(params.edges[0],network);
+      toggleCooltipPinned(params.edges[0]);
+    }
 	});
 }
 
@@ -557,7 +555,7 @@ function updateEdgeTraffic(displayTraffic){
       allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
       allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
     }else {
-      allEdges[edgeId].width = initialEdgeWidths[edgeId];
+      allEdges[edgeId].width = edgeInformation[edgeId].initialWidth;
       allEdges[edgeId].label = "";
     }
 
@@ -683,8 +681,7 @@ function toggleCooltipPinned(id){
 
 // create and show Nodecooltip for a given client
 function showNodeCooltip(id){
-  if(isNaN(id)) return;
-  var firstTime = ($("#" + id).length === 0);
+  if(isNaN(id) || ($("#" + id).length !== 0)) return;
 
   // calculate screen position
 	var canvasPos = network.getPositions(id)[id];
@@ -695,9 +692,7 @@ function showNodeCooltip(id){
 	var nodeName = network.body.nodes[id].options.label + (network.body.nodes[id].options.hiddenLabel || "");
 	var nodeColor = network.body.nodes[id].options.font.color;
 
-  if(firstTime){
-      $("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
-  }
+  $("body").append('<div id="' + id + '" title="'+ nodeName + '"></div>');
 
 	$('#' + id).dialog({
     open: function(event, ui){
@@ -735,10 +730,8 @@ function showNodeCooltip(id){
 		position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
 	});
 
-  if(firstTime){
-    // set default-height for Cooltip
-    $("#"+id).css("height","130px");
-  }
+  // set default-height for Cooltip
+  $("#"+id).css("height","130px");
 }
 
 // hides the Node-Cooltip with given id, IF it isn't pinned
@@ -843,6 +836,66 @@ function updateInfoTable(id,jsonData){
   $("#" + id + " td.info_IPv4").html(jsonData.IPv4);
 }
 
+
+
+//
+// Edge-Cooltip Methods
+//
+
+// create and show Nodecooltip for a given client
+function showEdgeCooltip(id){
+  if($("#" + id).length !== 0) return;
+  var edgeInfo = edgeInformation[id];
+
+	var title = 'Pi #' + edgeInfo.from + '&emsp; &#x21c4 &emsp;' + 'Pi #' + edgeInfo.to;
+  console.log("showing edge cooltip 2");
+
+  var trafficInfo = (mode.traffic) ? "traffic info" : "";
+
+  $("body").append('<div id="' + id + '" title="'+ title + '">' +
+    '<p>' + 'Bandwidth <b>' + arrowRight +'</b> : ' + edgeInfo.bandwidthRight + '[kbits]</p>' +
+    '<p>' + 'Bandwidth <b>' + arrowLeft +'</b> : ' + edgeInfo.bandwidthLeft + '[kbits]</p>' +
+    '<p>' + 'Delay <b>' + arrowRight + '</b> : ' + edgeInfo.delayRight + '[ms]</p>' +
+    '<p>' + 'Delay <b>' + arrowLeft + '</b> : ' + edgeInfo.delayLeft + '[ms]</p>' +
+    trafficInfo +
+  '</div>');
+
+	$('#' + id).dialog({
+		beforeClose: function(event, ui){
+			toggleCooltipPinned(id);
+			return false;
+		},
+		create: function(event, ui) {
+			widget = $(this).dialog("widget");
+			widget.mouseleave(function(){hideEdgeCooltip(id);});
+			$("button:first",widget).attr('id','pin'+id);
+			$(".ui-dialog-titlebar-close span:first", widget)
+				.removeClass("ui-icon-closethick")
+				.addClass("ui-icon-pin-s"); // use pin-icon
+			$(".ui-dialog-titlebar-close span:last", widget).remove(); //remove unused span
+			$("button.ui-dialog-titlebar-close", widget).attr("title", "(un-)/pin");
+		},
+		show: {
+			effect: 'fade',
+			duration: 500
+		},
+		resize: function(event, ui) { $(this).css("width","100%");},
+		position: { my: "left top", at: "left+" + mousePosition.x +" top+"+mousePosition.y, of: window }
+	});
+
+  // set default-height for Cooltip
+  $("#"+id).css("height","130px");
+}
+
+// hides the Edge-Cooltip with given id, IF it isn't pinned
+function hideEdgeCooltip(id){
+	// "h3 button.active" -> select all 'button's which are children of 'h3's
+	// and are member of class 'active'
+	if($("#pin" + id + '.active').length === 0){
+		// Only remove non-pinned cooltips
+		$("#" + id).parent().hide(function(){$("#" + id).remove();});
+	}
+}
 
 //
 // methods for displaying and updating a TimeLine-overview of
@@ -958,31 +1011,6 @@ function updateNodeRtLogView(id, logfile){
           length: 0,
     });
 }
-
-
-//
-// Misc
-//
-
-// Takes a array containing the edge information and returns a proper
-// html-info-thing,
-// n1,n2,bandwidth in kbits a -> b, bandwidth in kbits a <- b,
-// delay a -> b in ms, delay b -> a in ms
-// TODO: replace by cooltip!
-function getEdgeInfoHtml(edgeInfo){
-	var arrowRight = '<span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>';
-	var arrowLeft = '<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>';
-	return  '<div class="popover">' +
-				'<center><h3 class="popover-title">' +  edgeInfo[0] + arrowLeft + arrowRight + edgeInfo[1] + '</h3></center>' +
-				'<div class="popover-content">' +
-					'<p>' + 'Bandwidth <b>' + arrowRight +'</b> : ' + edgeInfo[2] + '[kbits]</p>' +
-					'<p>' + 'Bandwidth <b>' + arrowLeft +'</b> : ' + edgeInfo[3] + '[kbits]</p>' +
-					'<p>' + 'Delay <b>' + arrowRight + '</b> : ' + edgeInfo[4] + '[ms]</p>' +
-					'<p>' + 'Delay <b>' + arrowLeft + '</b> : ' + edgeInfo[5] + '[ms]</p>' +
-				'</div>' +
-			'</div>';
-}
-
 
 
 //
