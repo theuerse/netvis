@@ -430,17 +430,21 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	   var seed = getUrlVar("seed");
 
 	  // add random-seed btn
-	  $('#legendList').append('<li class="list-group-item"><a id="seedBtn" href="' + window.location.pathname +
-		getParamString({seed: Math.floor((Math.random() * 1000) + 1)}) +'" class="btn btn-default">random </br> seed</a></li>');
-
-    $("#seedBtn" ).button();
-
-    // add toggle-button for traffic
-    $('#legendList').append('<li class="list-group-item">' +
-        '<label for="trafficToggle">watch traffic</label>'+
-        '<input type="checkbox" id="trafficToggle" />' +
+	  $('#legendList').append('<li id="btnGrp" class="list-group-item">'+
+        '<label for="seedBtn">random seed</label><input id="seedBtn" type="checkbox"/>' +
+        '<label for="trafficToggle">watch traffic</label><input type="checkbox" id="trafficToggle"/>' +
+        '<label for="rtLogToggle">read rtLogs</label><input type="checkbox" id="rtLogToggle" />' +
     '</li>');
-    $("#trafficToggle").button();
+
+    $('#btnGrp').buttonset();
+
+    $('#seedBtn').bind('change', function(){
+      if($(this).is(':checked')){
+          window.location.replace(window.location.pathname +
+              getParamString({seed: Math.floor((Math.random() * 1000) + 1)}));
+        }
+      });
+
     $('#trafficToggle').bind('change', function(){
       if($(this).is(':checked')){
           $(this).button('option', 'label', "ignore traffic");
@@ -451,12 +455,7 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
         }
       });
 
-      // add toggle-button for traffic
-      $('#legendList').append('<li class="list-group-item">' +
-          '<label for="rtLogToggle">read rtLogs</label>'+
-          '<input type="checkbox" id="rtLogToggle" />' +
-      '</li>');
-      $("#rtLogToggle").button();
+      // add toggle-button for traffic      $("#rtLogToggle").button();
       $('#rtLogToggle').bind('change', function(){
         if($(this).is(':checked')){
             $(this).button('option', 'label', "ignore rtLogs");
