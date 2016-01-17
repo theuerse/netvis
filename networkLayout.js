@@ -568,7 +568,11 @@ function updateEdgeTraffic(displayTraffic){
     if(displayTraffic){
       allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
       // TODO: Text moving has negative impact at cpu when moving nodes -> edgePhysics
-      allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
+      edgeInformation[edgeId].traffic = Math.round(((8* trafficPerEdge[edgeId]) / 1000));
+      allEdges[edgeId].label = edgeInformation[edgeId].traffic + " [kbps]";
+
+      // update the matching (open) edge-cooltip displaying the edges traffic
+      $("#trafficIndicator" + edgeId).html('Traffic: ' + edgeInformation[edgeId].traffic + '[kbps]');
     }else {
       allEdges[edgeId].width = edgeInformation[edgeId].initialWidth;
       allEdges[edgeId].label = "";
@@ -864,11 +868,11 @@ function showEdgeCooltip(id){
 
 	var title = 'Pi #' + edgeInfo.from + '&emsp; &#x21c4 &emsp;' + 'Pi #' + edgeInfo.to;
 
-  var trafficInfo = (mode.traffic) ? "traffic info" : "";
+  var trafficInfo = (mode.traffic) ? ('<p id="trafficIndicator' + id + '">' + 'Traffic: ' + edgeInfo.traffic + '[kbps]</p>') : "";
 
   $("body").append('<div id="' + id + '" title="'+ title + '">' +
-    '<p>' + 'Bandwidth <b>' + arrowRight +'</b> : ' + edgeInfo.bandwidthRight + '[kbits]</p>' +
-    '<p>' + 'Bandwidth <b>' + arrowLeft +'</b> : ' + edgeInfo.bandwidthLeft + '[kbits]</p>' +
+    '<p>' + 'Bandwidth <b>' + arrowRight +'</b> : ' + edgeInfo.bandwidthRight + '[kbps]</p>' +
+    '<p>' + 'Bandwidth <b>' + arrowLeft +'</b> : ' + edgeInfo.bandwidthLeft + '[kbps]</p>' +
     '<p>' + 'Delay <b>' + arrowRight + '</b> : ' + edgeInfo.delayRight + '[ms]</p>' +
     '<p>' + 'Delay <b>' + arrowLeft + '</b> : ' + edgeInfo.delayLeft + '[ms]</p>' +
     trafficInfo +
@@ -896,9 +900,6 @@ function showEdgeCooltip(id){
 		resize: function(event, ui) { $(this).css("width","100%");},
 		position: { my: "left top", at: "left+" + mousePosition.x +" top+"+mousePosition.y, of: window }
 	});
-
-  // set default-height for Cooltip
-  $("#"+id).css("height","130px");
 }
 
 // hides the Edge-Cooltip with given id, IF it isn't pinned
