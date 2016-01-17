@@ -276,6 +276,7 @@ function drawTopology(data){
 		height: '100%',
 		layout:{randomSeed: seed},
 		edges: {
+      physics: true,
 			hoverWidth: 0
 		},
 		interaction: {
@@ -292,18 +293,21 @@ function drawTopology(data){
 			barnesHut: {
 				avoidOverlap: 1, // maximum overlap avoidance
 				gravitationalConstant: -4000 // neg. value -> repulsion
-			}
-		}
+			},
+		},
+    nodes: {
+      physics: true
+    }
 	};
 
 	// draw graph
 	network = new vis.Network(container, graphData, options);
 	drawLegend(network,jQuery.extend({},options),numberOfNodes,servers,groups,bitrateBounds);
 
-    // shut down physics when networkLayout has initially stabilized
-    network.once("stabilized", function(params) {
+  // shut down node-physics when networkLayout has initially stabilized
+  network.once("stabilized", function(params) {
 		console.log("network stabilized!");
-		options.physics ={enabled: false};
+		options.nodes.physics = false;
 		network.setOptions(options);
 	});
 
@@ -332,8 +336,8 @@ function drawTopology(data){
     });
 
     network.on("hoverEdge", function (params) {
-     clearTimeout(edgeCoolTipTimeout);
-     edgeCoolTipTimeout = setTimeout(function(){showEdgeCooltip(params.edge);},400);
+        clearTimeout(edgeCoolTipTimeout);
+        edgeCoolTipTimeout = setTimeout(function(){showEdgeCooltip(params.edge);},400);
     });
 
     network.on("click", function (params){
@@ -430,11 +434,11 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	   var seed = getUrlVar("seed");
 
 	  // add random-seed btn
-	  $('#legendList').append('<li id="btnGrp" class="list-group-item">'+
+	  $('#legendList').append('<li class="list-group-item"><div id="btnGrp">'+
         '<label for="seedBtn">random seed</label><input id="seedBtn" type="checkbox"/>' +
         '<label for="trafficToggle">watch traffic</label><input type="checkbox" id="trafficToggle"/>' +
         '<label for="rtLogToggle">read rtLogs</label><input type="checkbox" id="rtLogToggle" />' +
-    '</li>');
+    '</div></li>');
 
     $('#btnGrp').buttonset();
 
@@ -563,6 +567,7 @@ function updateEdgeTraffic(displayTraffic){
 	for(edgeId in allEdges) {
     if(displayTraffic){
       allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
+      // TODO: Text moving has negative impact at cpu when moving nodes -> edgePhysics
       allEdges[edgeId].label = Math.round(((8* trafficPerEdge[edgeId]) / 1000)) + " [kbps]";
     }else {
       allEdges[edgeId].width = edgeInformation[edgeId].initialWidth;
