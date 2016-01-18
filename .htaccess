@@ -1,7 +1,7 @@
 AddCharset UTF-8 .html .css .php .txt .js .json
 
 <ifmodule mod_headers.c>
- <filesmatch "\\.(json)$">
- Header set Cache-Control "max-age=15, public"
+ <filesmatch "\\.(json|log)$">
+ Header set Cache-Control "max-age=5, public"
  </filesmatch>
 </ifmodule>
