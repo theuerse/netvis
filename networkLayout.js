@@ -373,7 +373,7 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
       var step = 100;
 
       options.height = '300px'; // limit height, make room for additional information
-      options.interaction = {zoomView: false, selectable: false};
+      options.interaction = {zoomView: false, selectable: false, dragView: false};
       options.physics = {enabled: false};
 
       var serverCount = servers.length;
@@ -433,21 +433,13 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 	  // get params
 	   var seed = getUrlVar("seed");
 
-	  // add random-seed btn
+	  // add buttons for toggling traffic / rtLog - watching on or off
 	  $('#legendList').append('<li class="list-group-item"><div id="btnGrp">'+
-        '<label for="seedBtn">random seed</label><input id="seedBtn" type="checkbox"/>' +
         '<label for="trafficToggle">watch traffic</label><input type="checkbox" id="trafficToggle"/>' +
         '<label for="rtLogToggle">read rtLogs</label><input type="checkbox" id="rtLogToggle" />' +
     '</div></li>');
 
     $('#btnGrp').buttonset();
-
-    $('#seedBtn').bind('change', function(){
-      if($(this).is(':checked')){
-          window.location.replace(window.location.pathname +
-              getParamString({seed: Math.floor((Math.random() * 1000) + 1)}));
-        }
-      });
 
     $('#trafficToggle').bind('change', function(){
       if($(this).is(':checked')){
@@ -766,7 +758,6 @@ function hideNodeCooltip(id){
 		// shut down status - refresh
 		clearInterval(NodeUpdateIntervals[id]);
     delete NodeUpdateIntervals[id];
-    //delete rtLogNodeUpdateIntervals[id]; //TODO: needed elsewhere
 
 		// Only remove non-pinned cooltips
 		$("#" + id).parent().hide(function(){$("#" + id).remove();});
@@ -946,15 +937,16 @@ function showNodeRtLogview(id){
 
 	$("#rtLogview" + id).dialog({
     open: function(event, ui){
+      // update
+      updateNodeRtLogView(id);
+
       // setup periodic updates
-      if(rtLogNodeUpdateIntervals[id] !== undefined){
-        rtLogNodeUpdateIntervals[id] = setInterval(updateNodeRtLogView(id));
-      }
+      clearInterval(rtLogNodeUpdateIntervals[id]);
+      rtLogNodeUpdateIntervals[id] = setInterval(function(){updateNodeRtLogView(id);},updateInterval);
     },
     beforeClose: function(event,ui){
       // stop the periudic ui-updates
       clearInterval(rtLogNodeUpdateIntervals[id]);
-      delete rtLogNodeUpdateIntervals[id];
     },
     create: function(event, ui) {
 			widget = $(this).dialog("widget");
@@ -962,7 +954,8 @@ function showNodeRtLogview(id){
 		},
     width: 600,
     height: 400,
-    position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window }
+    position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window },
+    resize: function(event, ui) { $(this).css("width","100%");},
   });
 
   if(firstTime){
@@ -985,7 +978,7 @@ function showNodeRtLogview(id){
                 label: {
                     text: 'Segment Number',
                     position: 'outer-center'
-                }
+                },
             },
             y : {
                 label: {
@@ -1011,16 +1004,16 @@ function showNodeRtLogview(id){
 }
 
 // update the Timeline-Chart of a given Client(-id) using a given rtLogfile
-function updateNodeRtLogView(id, logfile){
+function updateNodeRtLogView(id){
   if((!$("#rtLogview" + id).is(":visible")) || (clientCharts[id] === undefined)) return;
 
   // seperate lines
   var newEntries = [];
   var segmentNumbers=[];
-  var lines = logfile.split("\n");
+  var lines = clientRtLogs[id].split("\n");
   var quality;
 
-  for(var index = Math.max(lines.length-200,0); index < lines.length; index++){
+  for(var index = Math.max(lines.length-150,0); index < lines.length; index++){
       var columns = lines[index].split("\t");
       if((columns.length < 5)) continue;
       if(!isNaN(columns[2])) segmentNumbers.push(parseInt(columns[2]));
@@ -1034,6 +1027,9 @@ function updateNodeRtLogView(id, logfile){
           ],
           length: 0,
     });
+
+    // set zoom (zoom to specified domain)
+    //clientCharts[id].zoom([Math.max(lines.length-20,0), Math.max(lines.length,20)]);
 }
 
 
@@ -1116,11 +1112,12 @@ function getRtLogFile(id){
 		//if((lastConsumedSegmentInfo[id] === undefined || Date.parse(lastConsumedSegmentInfo[id].date) < Date.parse(clientInfo.date)) & !isNaN(columns[4]))
 		lastConsumedSegmentInfo[id] = clientInfo;
     clientRtLogs[id] = data;
-    initialRtLogReceived = true; // we received a rtlog-file
-		//console.log("updating logInfo for PI_"+id);
+    if(!initialRtLogReceived){
+      updateNodeRtLogView(id);
+      initialRtLogReceived = true; // we received a rtlog-file
+    }
 
-    // Update svc layer chart
-    updateNodeRtLogView(id,data);
+		//console.log("updating logInfo for PI_"+id);
     })
     .fail(function() {
         console.log("failed retrieving logfile for PI_" + id);
