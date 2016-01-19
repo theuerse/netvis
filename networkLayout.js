@@ -953,20 +953,9 @@ function showNodeRtLogview(id){
 			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
 		},
     width: 600,
-    height: 280,
+    height: 220,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window },
     resize: function(event, ui) { $(this).css("width","100%");},
-    buttons:{ 'pause': function(e){
-        if($(e.target).closest("button").html() ==='<span class="ui-button-text">pause</span>'){
-          $(e.target).closest("button").html('<span class="ui-button-text">continue</span>');
-          clearInterval(rtLogNodeUpdateIntervals[id]);
-        } else {
-          $(e.target).closest("button").html('<span class="ui-button-text">pause</span>');
-          clearInterval(rtLogNodeUpdateIntervals[id]);
-          rtLogNodeUpdateIntervals[id] = setInterval(function(){updateNodeRtLogView(id);},updateInterval);
-        }
-      },
-    }
   });
 
   if(firstTime){
@@ -1017,6 +1006,20 @@ function showNodeRtLogview(id){
         interaction: {enabled: true},
         legend: {show: false},
     });
+
+    $('#chart' + id).click(function(){
+      if(rtLogNodeUpdateIntervals[id] === undefined){
+          console.log("playback" + id);
+          // periodical chart-updates have been paused previously
+          // start updating periodically
+          rtLogNodeUpdateIntervals[id] = setInterval(function(){updateNodeRtLogView(id);},updateInterval);
+      }else {
+          // chart has been periodically updated until now, now pause
+          clearInterval(rtLogNodeUpdateIntervals[id]);
+          delete (rtLogNodeUpdateIntervals[id]);
+          console.log("pause" +id);
+      }
+    });
   }
 }
 
@@ -1043,7 +1046,6 @@ function updateNodeRtLogView(id){
             ['sample'].concat(newEntries),
           ],
           length: 0,
-          unload: true
     });
 
     // set zoom (zoom to specified domain)
