@@ -1043,6 +1043,7 @@ function updateNodeRtLogView(id){
             ['sample'].concat(newEntries),
           ],
           length: 0,
+          unload: true
     });
 
     // set zoom (zoom to specified domain)
