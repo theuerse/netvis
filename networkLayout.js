@@ -953,13 +953,27 @@ function showNodeRtLogview(id){
 			$(".ui-dialog-titlebar",widget).css("color",nodeColor);
 		},
     width: 600,
-    height: 400,
+    height: 280,
     position: { my: "left top", at: "left+" + pos.x +" top+"+pos.y, of: window },
     resize: function(event, ui) { $(this).css("width","100%");},
+    buttons:{ 'pause': function(e){
+        if($(e.target).closest("button").html() ==='<span class="ui-button-text">pause</span>'){
+          $(e.target).closest("button").html('<span class="ui-button-text">continue</span>');
+          clearInterval(rtLogNodeUpdateIntervals[id]);
+        } else {
+          $(e.target).closest("button").html('<span class="ui-button-text">pause</span>');
+          clearInterval(rtLogNodeUpdateIntervals[id]);
+          rtLogNodeUpdateIntervals[id] = setInterval(function(){updateNodeRtLogView(id);},updateInterval);
+        }
+      },
+    }
   });
 
   if(firstTime){
     clientCharts[id] = c3.generate({
+        size: {
+          height: 150
+        },
         bindto: '#chart' + id,
         data: {
            x: 'x',
@@ -979,6 +993,9 @@ function showNodeRtLogview(id){
                     text: 'Segment Number',
                     position: 'outer-center'
                 },
+                tick: {
+                    culling: {max: 75}
+                }
             },
             y : {
                 label: {
@@ -995,7 +1012,7 @@ function showNodeRtLogview(id){
             }
         },
         tooltip: {show: false},
-        subchart: {show: true},
+        subchart: {show: false},
         zoom: {enabled: true},
         interaction: {enabled: true},
         legend: {show: false},
@@ -1029,7 +1046,7 @@ function updateNodeRtLogView(id){
     });
 
     // set zoom (zoom to specified domain)
-    //clientCharts[id].zoom([Math.max(lines.length-20,0), Math.max(lines.length,20)]);
+    clientCharts[id].zoom([Math.max(lines.length-20,0), Math.max(lines.length,20)]);
 }
 
 
