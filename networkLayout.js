@@ -17,7 +17,7 @@
  var clientJson = {};
  var clientRtLogs = {};
  var clientCharts = [];
- var clientTraffic = {};
+ var edgeTraffic = {};
  var nodeCoolTipTimeout = {};
  var edgeCoolTipTimeout = {};
  var edgeInformation = {};
@@ -551,7 +551,8 @@ function updateEdgeTraffic(displayTraffic){
 	// get traffic per edge and find max traffic on any edge
 	for(edgeId in allEdges) {
 		edge = allEdges[edgeId];
-		trafficPerEdge[edge.id] = (clientTraffic[edge.from] + clientTraffic[edge.to])/2; // mean traffic
+
+    trafficPerEdge[edge.id] = (edgeTraffic[edge.from + "-" + edge.to] === undefined) ? 0 : edgeTraffic[edge.from + "-" + edge.to];
 		if(trafficPerEdge[edge.id] > maxTraffic) maxTraffic = trafficPerEdge[edge.id];
 	}
 
@@ -560,7 +561,7 @@ function updateEdgeTraffic(displayTraffic){
     if(displayTraffic){
       allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
       // TODO: Text moving has negative impact at cpu when moving nodes -> edgePhysics
-      edgeInformation[edgeId].traffic = Math.round(((8* trafficPerEdge[edgeId]) / 1000));
+      edgeInformation[edgeId].traffic = Math.round(((8* trafficPerEdge[edgeId]) / 1000)); // kbps
       allEdges[edgeId].label = edgeInformation[edgeId].traffic + " [kbps]";
 
       // update the matching (open) edge-cooltip displaying the edges traffic
@@ -1084,24 +1085,17 @@ function getJsonFile(id, callback){
 			// cache locally
 			if(clientJson[id] === undefined){
 				clientJson[id] = {previous: undefined, current: jsonData};
-				// no previous value, traffic is zero
-				clientTraffic[id] = 0;
 			}
 			else{
 				clientJson[id].previous = clientJson[id].current;
 				clientJson[id].current = jsonData;
-				// traffic = (tx_2 - tx_1) - (rx_2 - rx_1) [bytes]
+
 				if(clientJson[id].current.date != clientJson[id].previous.date){ // deal with reading the same file several times
-					/* different file! */
+          /* different file! */
           // indicate that at least 2 jsonFiles have arrived
           if(!initialTrafficInfoReceived) initialTrafficInfoReceived = true;
 
-          // time interval between prev. and current json-file
-          elapsedSeconds = Math.abs((parseDate(clientJson[id].current.date) - parseDate(clientJson[id].previous.date)))/1000;
-
-					clientTraffic[id] = (Math.abs(parseInt(clientJson[id].current.txbytes) - parseInt(clientJson[id].previous.txbytes))) +
-					(Math.abs(parseInt(clientJson[id].current.rxbytes) - parseInt(clientJson[id].previous.rxbytes)));
-          clientTraffic[id] = Math.round(clientTraffic[id] / elapsedSeconds); // traffic now in bytes per second
+			    updateTrafficInfo(id);
 				}else {/* same file!" */}
 			}
 
@@ -1110,6 +1104,23 @@ function getJsonFile(id, callback){
 			}
 		}
 	});
+}
+
+function updateTrafficInfo(clientId){
+  // time interval between prev. and current json-file
+  elapsedSeconds = Math.abs((parseDate(clientJson[clientId].current.date) - parseDate(clientJson[clientId].previous.date)))/1000;
+  var edgeId;
+  var prevTraffic;
+
+  // for every mentioned edge in Traffic-Data
+  Object.keys(clientJson[clientId].current.Traffic).forEach(function(ip,traffic) {
+    // no previous value, traffic is zero
+    prevTraffic = (clientJson[clientId].previous.Traffic[ip] === undefined) ? 0 : parseInt(clientJson[clientId].previous.Traffic[ip]);
+    edgeId = getConnectingEdgeId(clientId ,getIdFromIP(ip));
+
+    edgeTraffic[edgeId] = parseInt(clientJson[clientId].current.Traffic[ip]) - parseInt(clientJson[clientId].previous.Traffic[ip]);
+    edgeTraffic[edgeId] = Math.round(edgeTraffic[edgeId] / elapsedSeconds); // traffic now in bytes per second
+  });
 }
 
 function getRtLogFile(id){
@@ -1235,6 +1246,25 @@ function parseDate(dateString){
   // make Tue Jan 5 11:28:02 CET 2016 to Jan 5 12:07:01 2016 and return date-object
   var parts = dateString.split(" ");
   return Date.parse(parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[5]);
+}
+
+// returns the node-id given it's IPv4-address ("192.168.0.23/24" or "192.168.1.28")
+function getIdFromIP(ip){
+  var simpleIp = ip.split("/")[0];
+  return parseInt(simpleIp.split(".")[3]) -10;
+}
+
+// given two nodes, returns the edge-id of the edge in between
+// or undefined if the two nodes are not connected
+function getConnectingEdgeId(node1, node2){
+  var allEdges = network.body.data.edges.get({returnType:"Object"});
+
+  if(allEdges[node1 + "-" + node2] !== undefined) return node1 + "-" + node2;
+  else if(allEdges[node2 + "-" + node1] !== undefined) return node2 + "-" + node1;
+  else {
+    console.log("(network-topology and json-files mismatch): there is no edge between Pi #" + node1 + " and Pi #" + node2);
+    return undefined;
+  }
 }
 
 // takes a JSON string / tries to parse it and returns a json-object if successful
