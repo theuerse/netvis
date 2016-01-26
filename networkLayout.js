@@ -24,6 +24,7 @@
  var mode = {traffic: false, rtlog: false}; // delineates the current mode of operation
  var mousePosition = {x: 0, y: 0};
  var nodes;
+ var edges;
  var clients = []; // array containing the ids of all clients
  var arrowRight = '<span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>';
  var arrowLeft = '<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>';
@@ -185,7 +186,7 @@ function changeModeOfOperation(traffic, rtlog){
 // draws given topology-data using vis.js (data from e.g. "generated_network_top.txt")
 function drawTopology(data){
 	nodes = new vis.DataSet();
-	var edges = new vis.DataSet();
+	edges = new vis.DataSet();
 
 	// process file-data
 	// seperate lines
@@ -1108,18 +1109,22 @@ function getJsonFile(id, callback){
 
 function updateTrafficInfo(clientId){
   // time interval between prev. and current json-file
-  elapsedSeconds = Math.abs((parseDate(clientJson[clientId].current.date) - parseDate(clientJson[clientId].previous.date)))/1000;
+  elapsedSeconds = (parseDate(clientJson[clientId].current.date) - parseDate(clientJson[clientId].previous.date))/1000;
   var edgeId;
   var prevTraffic;
 
   // for every mentioned edge in Traffic-Data
   Object.keys(clientJson[clientId].current.Traffic).forEach(function(ip,traffic) {
-    // no previous value, traffic is zero
-    prevTraffic = (clientJson[clientId].previous.Traffic[ip] === undefined) ? 0 : parseInt(clientJson[clientId].previous.Traffic[ip]);
-    edgeId = getConnectingEdgeId(clientId ,getIdFromIP(ip));
 
-    edgeTraffic[edgeId] = parseInt(clientJson[clientId].current.Traffic[ip]) - parseInt(clientJson[clientId].previous.Traffic[ip]);
-    edgeTraffic[edgeId] = Math.round(edgeTraffic[edgeId] / elapsedSeconds); // traffic now in bytes per second
+    edgeId = clientId + "-" + getIdFromIP(ip);
+    // node that edge originates in is the source of the traffic-data
+    if(edges.get(edgeId) !== null){
+      // no previous value, traffic is zero
+      prevTraffic = (clientJson[clientId].previous.Traffic[ip] === undefined) ? 0 : parseInt(clientJson[clientId].previous.Traffic[ip]);
+
+      edgeTraffic[edgeId] = parseInt(clientJson[clientId].current.Traffic[ip]) - parseInt(clientJson[clientId].previous.Traffic[ip]);
+      edgeTraffic[edgeId] = Math.round(edgeTraffic[edgeId] / elapsedSeconds); // traffic now in bytes per second
+    }
   });
 }
 
@@ -1252,19 +1257,6 @@ function parseDate(dateString){
 function getIdFromIP(ip){
   var simpleIp = ip.split("/")[0];
   return parseInt(simpleIp.split(".")[3]) -10;
-}
-
-// given two nodes, returns the edge-id of the edge in between
-// or undefined if the two nodes are not connected
-function getConnectingEdgeId(node1, node2){
-  var allEdges = network.body.data.edges.get({returnType:"Object"});
-
-  if(allEdges[node1 + "-" + node2] !== undefined) return node1 + "-" + node2;
-  else if(allEdges[node2 + "-" + node1] !== undefined) return node2 + "-" + node1;
-  else {
-    console.log("(network-topology and json-files mismatch): there is no edge between Pi #" + node1 + " and Pi #" + node2);
-    return undefined;
-  }
 }
 
 // takes a JSON string / tries to parse it and returns a json-object if successful
