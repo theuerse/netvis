@@ -37,7 +37,7 @@
  var highlightActive = false;
  	// colors of BYR color wheel, order changed
 	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
-		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#66b032","#fabc02"];
+		      "#0392ce","#3d01a4","#d0ea2b","#a7194b","#fabc02"];
 
 
 
@@ -219,7 +219,7 @@ function drawTopology(data){
 			// add edges
 			// lines[index] contains edge-information
 			edgeInfo = lines[index].split(",");
-      var width =  ((((edgeInfo[2], edgeInfo[3]) / 2)/ bitrateBounds[1]) * 10);
+      var width =  ((((parseInt(edgeInfo[2]) + parseInt(edgeInfo[3])) / 2)/ bitrateBounds[1]) * 6);
 			// add edge first two entries ... connected nodes ( a -> b)
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
