@@ -1,8 +1,17 @@
  var topologyFilePath = "network/generated_network_top.txt";
  var jsonDirectory = "network/";
-					       // cold blue,   red,    yellow, green
- var clientScreenFillColors = ["#1b1b43","#FF0000","#FFFF00","#339900"];
- var clientScreenFontColors = ["#FFFFFF","#FFFFFF","#000000","#FFFFFF"];
+
+ var layers = { //id
+                none: {symbol: "", screenFillColor: "#1b1b43", screenFontColor: "#FFFFFF",
+                  hoverBackgroundColor: "#1b1b43"}, // cold blue and white font
+                0: {symbol: "0", screenFillColor: "#FF0000", screenFontColor: "#FFFFFF",
+                  hoverBackgroundColor: "#D90000"}, // red and white font
+                1: {symbol: "1", screenFillColor: "#FFFF00", screenFontColor: "#000000",
+                  hoverBackgroundColor:  "#D9D900"}, // yellow and black font
+                2: {symbol: "2", screenFillColor: "#339900", screenFontColor: "#FFFFFF",
+                  hoverBackgroundColor: "#267300"} // green and white font
+              };
+
  var updateInterval = 3000; // normal time between two update-attempts [ms]
  var NodeUpdateIntervals = {};
  var edgeUpdateInterval;
@@ -252,7 +261,7 @@ function drawTopology(data){
 
 			// nodeInfo[0] ... id of client - node
 			nodes.update({id: nodeInfo[0], label: 'Pi #' + nodeInfo[0], group: "client",
-				 shadow: true, shape: "image", image: getClientImageUrl("",clientScreenFillColors[0],clientScreenFontColors[0]),
+				 shadow: true, shape: "image", image: getClientImageUrl(layers.none.symbol,layers.none.screenFillColor,layers.none.screenFontColor),
 				 font: "20px arial " + colors[$.inArray(nodeInfo[1],servers)]});
 			if($.inArray(nodeInfo[0],clients)<0){
 				clients.push(nodeInfo[0]); // add client-id only if not already present
@@ -593,9 +602,11 @@ function updateClientImages(clients){
 	var node;
 	var layer;
 	clients.forEach(function(clientId) {
-		layer = (lastConsumedSegmentInfo[clientId] === undefined) ? -1 : lastConsumedSegmentInfo[clientId].layer;
+    layer = layers[lastConsumedSegmentInfo[clientId].layer];
+    if(layer === undefined) layer = layers.none;
+
 		node = allNodes[clientId];
-		node.image = getClientImageUrl((layer == -1) ? "" : layer,clientScreenFillColors[layer+1],clientScreenFontColors[layer+1]);
+    node.image = getClientImageUrl(layer.symbol, layer.screenFillColor, layer.screenFontColor);
 		updatedNodes.push(node);
 	});
 
@@ -611,7 +622,7 @@ function resetClientImages(clients){
   var node;
   clients.forEach(function(clientId) {
     node = allNodes[clientId];
-    node.image = getClientImageUrl("",clientScreenFillColors[0],clientScreenFontColors[0]);
+    node.image = getClientImageUrl(layers.none.symbol, layers.none.screenFillColor, layers.none.screenFontColor);
     updatedNodes.push(node);
   });
 
@@ -639,26 +650,26 @@ function updateSVCLayerChart(){
 		lvlStatistic[lastConsumedSegmentInfo[key].layer] += 1;
 	}
 	var sum = lvlStatistic.reduce(function(pv, cv) { return pv + cv; }, 0);
+  var labels = [];
+  var backgroundColor = [];
+  var hoverBackgroundColor = [];
+
+  Object.keys(layers).forEach(function(key,index) {
+    if(!isNaN(key)){
+      var count = (lvlStatistic[key] === undefined) ? 0 : lvlStatistic[key];
+      labels.push("L" + key + " (" + Math.round((lvlStatistic[key] / sum) * 100) + "%)");
+      backgroundColor.push(layers[key].screenFillColor);
+      hoverBackgroundColor.push(layers[key].hoverBackgroundColor);
+    }
+  });
 
 	var data = {
-    labels: [
-        "L2 (" + Math.round((lvlStatistic[2] / sum) * 100) + "%)",
-        "L1 (" + Math.round((lvlStatistic[1] / sum) * 100) + "%)",
-        "L0 (" + Math.round((lvlStatistic[0] / sum) * 100) + "%)"
-    ],
+    labels: labels.reverse(),
     datasets: [
         {
             data: lvlStatistic.reverse(), // necessary, because we start with 0 at the bottom (last element)
-            backgroundColor: [
-				clientScreenFillColors[3],
-				clientScreenFillColors[2],
-				clientScreenFillColors[1]
-            ],
-            hoverBackgroundColor: [
-                "#267300",
-                "#D9D900",
-                "#D90000"
-            ]
+            backgroundColor: backgroundColor.reverse(),
+            hoverBackgroundColor: hoverBackgroundColor.reverse()
         }]
 	};
 
@@ -669,7 +680,6 @@ function updateSVCLayerChart(){
 	});
 
 	myPieChart.resize();
-
 }
 
 
@@ -1096,7 +1106,7 @@ function getJsonFile(id, callback){
           // indicate that at least 2 jsonFiles have arrived
           if(!initialTrafficInfoReceived) initialTrafficInfoReceived = true;
 
-			    updateTrafficInfo(id);
+          updateTrafficInfo(id);
 				}else {/* same file!" */}
 			}
 
