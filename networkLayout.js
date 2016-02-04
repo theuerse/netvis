@@ -360,7 +360,6 @@ function drawTopology(data){
 		}
 
     if(params.edges.length == 1){
-      console.log("toggling " + params.edges[0]);
       showEdgeCooltip(params.edges[0],network);
       toggleCooltipPinned(params.edges[0]);
     }
@@ -939,7 +938,6 @@ function cleanupNonPinnedEdgeCooltips(){
 // of a given client(-id)
 function showNodeRtLogview(id){
   var firstTime = ($("#rtLogview" + id).length === 0);
-  console.log("show rtlog for pi" + id);
 	// calculate screen position
 	var canvasPos = network.getPositions(id)[id];
 	var pos = network.canvasToDOM(canvasPos);
@@ -1028,7 +1026,6 @@ function showNodeRtLogview(id){
 
     $('#chart' + id).click(function(){
       if(rtLogNodeUpdateIntervals[id] === undefined){
-          console.log("playback" + id);
           // periodical chart-updates have been paused previously
           // start updating periodically
           rtLogNodeUpdateIntervals[id] = setInterval(function(){updateNodeRtLogView(id);},updateInterval);
@@ -1036,7 +1033,6 @@ function showNodeRtLogview(id){
           // chart has been periodically updated until now, now pause
           clearInterval(rtLogNodeUpdateIntervals[id]);
           delete (rtLogNodeUpdateIntervals[id]);
-          console.log("pause" +id);
       }
     });
   }
@@ -1078,11 +1074,9 @@ function updateNodeRtLogView(id){
 
 function getFiles(){
   requestedJsonFiles.forEach(function(id){
-    //console.log("fetching jsonfile for" + id);
     getJsonFile(id,undefined);
   });
   requestedRtLogFiles.forEach(function(id){
-    //console.log("fetching rtLogFile for" + id);
     getRtLogFile(id);
   });
 }
@@ -1096,7 +1090,6 @@ function getJsonFile(id, callback){
 		data: rawJsonString,
 		dataType: 'text',
 		success: function(rawJsonString) {
-      //console.log("received " + getJsonFileName(id));
 			var jsonData = parseJSON(rawJsonString);
 			if(jsonData === null) return;
 
@@ -1169,8 +1162,6 @@ function getRtLogFile(id){
       updateNodeRtLogView(id);
       initialRtLogReceived = true; // we received a rtlog-file
     }
-
-		//console.log("updating logInfo for PI_"+id);
     })
     .fail(function() {
         console.log("failed retrieving logfile for PI_" + id);
