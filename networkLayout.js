@@ -653,13 +653,19 @@ function updateSVCLayerChart(){
   var labels = [];
   var backgroundColor = [];
   var hoverBackgroundColor = [];
+  var count;
+  var percent;
 
   Object.keys(layers).forEach(function(key,index) {
     if(!isNaN(key)){
-      var count = (lvlStatistic[key] === undefined) ? 0 : lvlStatistic[key];
-      labels.push("L" + key + " (" + Math.round((lvlStatistic[key] / sum) * 100) + "%)");
+      count = (lvlStatistic[key] === undefined) ? 0 : lvlStatistic[key];
+      percent = Math.round((count / sum) * 100);
+      labels.push("L" + layers[key].symbol + " (" + ((percent < 10) ? "  " + percent : percent) + "%)");
       backgroundColor.push(layers[key].screenFillColor);
       hoverBackgroundColor.push(layers[key].hoverBackgroundColor);
+      if(lvlStatistic[key] === undefined){
+        lvlStatistic[key] = 0; // all layers must be represented
+      }
     }
   });
 
@@ -1007,6 +1013,7 @@ function showNodeRtLogview(id){
                     // change displayed y-value
                     format: function (d) {
                       if(((d-1) < 0) || !Number.isInteger(d)) return "";
+                      if(layers[d-1] !== undefined) return layers[d-1].symbol;
                        return (d-1);
                      }
                 }
