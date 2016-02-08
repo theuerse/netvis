@@ -222,7 +222,7 @@ function drawTopology(data){
 			// lines[index] contains number of nodes (assumed correct everytime)
 			numberOfNodes = lines[index];
 			for(i = 0; i < numberOfNodes; i++){
-			  nodes.add({id: i, group: "router", shadow: true,  color: '#3c87eb',
+			  nodes.add({id: i, group: "router", shadow: true, color: '#3c87eb',
 				  label: 'Pi #' + i, shape: "image", image: images.router[0],font: "20px arial black"});
 			}
 		}else if(part == 1){
@@ -233,7 +233,7 @@ function drawTopology(data){
 			// add edge first two entries ... connected nodes ( a -> b)
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
-				to: edgeInfo[1], width: width, shadow: true, font: {align: 'bottom'}});
+				to: edgeInfo[1], width: width, shadow: true, color: '#3c87eb', font: {align: 'bottom'}});
 
       edgeInformation[edgeId]={from: edgeInfo[0], to: edgeInfo[1], bandwidthRight: edgeInfo[2],
         bandwidthLeft: edgeInfo[3], delayRight: edgeInfo[4], delayLeft: edgeInfo[5], initialWidth: width,
@@ -477,22 +477,28 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
 // mostly called by the legend in order
 // to visualize the members of a group
 function highlightSelectedNodes(){
-	var nodes = network.body.data.nodes;
-	var allNodes = nodes.get({returnType:"Object"});
+	var allNodes = network.body.data.nodes.get({returnType:"Object"});
+  var allEdges = network.body.data.edges.get({returnType:"Object"});
 	var selectedNodeIds = network.getSelectedNodes();
   var nodeId;
+  var edgeId;
 
 	if (highlightActive === true) {
+    // reset all edges
+    for(edgeId in allEdges){
+      allEdges[edgeId].color = '#3c87eb'; // set edgeColor to a blue tone
+    }
+
 		// reset all nodes / restore 'normal' view
 		for (nodeId in allNodes) {
-			// affect edge-color inderectly by setting node-color
-			allNodes[nodeId].color = '#3c87eb';
-
 			// show label
 			if (allNodes[nodeId].hiddenLabel !== undefined) {
 				allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
 				allNodes[nodeId].hiddenLabel = undefined;
 			}
+
+      // hide border
+      allNodes[nodeId].shapeProperties = {useBorderWithImage:false};
 
 			// swap in normal (colored) images
 			if(allNodes[nodeId].group == "client") continue; // make exception for clients
@@ -506,14 +512,23 @@ function highlightSelectedNodes(){
     if (selectedNodeIds.length > 0) {
 		highlightActive = true;
 
+    // grey out edges, we are now focusing on the nodes!
+    for(edgeId in allEdges){
+      allEdges[edgeId].color = 'rgba(200,200,200,0.5)'; // set edgeColor to a faint grey color
+    }
+
 		// mark all non-selected nodes as hard to read.
 		for (nodeId in allNodes) {
-			// affect edge-color inderectly by setting node-color
-			// to affect every edge, every node-color must be changed
-			allNodes[nodeId].color = 'rgba(200,200,200,0.5)';
 
-			// do not grey out selected Nodes
-			if($.inArray(nodeId,selectedNodeIds)>=0) continue;
+			// do not affect ('grey-out') selected Nodes
+			if($.inArray(nodeId,selectedNodeIds)>=0){
+        // draw border around the selected node
+        allNodes[nodeId].shapeProperties = {useBorderWithImage:true};
+
+        // assign the label-color to the border
+        allNodes[nodeId].color=allNodes[nodeId].font.split(" ")[2];
+        continue;
+      }
 
 			// hide label
 			if (allNodes[nodeId].hiddenLabel === undefined) {
@@ -528,15 +543,23 @@ function highlightSelectedNodes(){
     }
 
 
-    // transform the object into an array
-    // and write it back
+    // update nodes
     var updateArray = [];
     for (nodeId in allNodes) {
-		if (allNodes.hasOwnProperty(nodeId)) {
-			updateArray.push(allNodes[nodeId]);
-		}
+		  if (allNodes.hasOwnProperty(nodeId)) {
+			  updateArray.push(allNodes[nodeId]);
+		  }
     }
-    nodes.update(updateArray);
+    network.body.data.nodes.update(updateArray);
+
+    // update edges
+    updateArray = [];
+    for(edgeId in allEdges){
+      if(allEdges.hasOwnProperty(edgeId)){
+        updateArray.push(allEdges[edgeId]);
+      }
+    }
+    network.body.data.edges.update(updateArray);
 }
 
 //
