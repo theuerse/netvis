@@ -43,6 +43,7 @@
 		client: ["res/img/client.svg","res/img/clientGrey.svg"]
 	 };
  var network;
+ var svcLayerChart;
  var highlightActive = false;
  	// colors of BYR color wheel, order changed
 	var colors = ["#0247fe","#8601af","#66b032","#fe2712","#fefe33","#fb9902",
@@ -679,12 +680,15 @@ function updateSVCLayerChart(){
 	};
 
 	var ctx = document.getElementById("chart-area");
-	var myPieChart = new Chart(ctx,{
+  // destroy old chart
+  if(svcLayerChart !== undefined) svcLayerChart.destroy();
+  // create new/updated version
+  svcLayerChart = new Chart(ctx,{
 		type:'doughnut',
 		data: data
 	});
 
-	myPieChart.resize();
+	svcLayerChart.resize();
 }
 
 
