@@ -1154,6 +1154,13 @@ function getRtLogFile(id){
 		var lastLine = lines[lines.length-2]; // compensate file ending in \n
 		//console.log("PI_" + id + ": " + lastLine);
 
+    if(lastLine === undefined){
+      console.log("last line not found in logfile for PI_" + id);
+      // display default cold blue screen
+      lastConsumedSegmentInfo[id] = {date: new Date(), layer: -1};
+      return;
+    }
+
 		// access individual columns
 		var columns = lastLine.split("\t");
 		var clientInfo = {date: columns[0], layer: parseInt(columns[4])};
@@ -1170,8 +1177,7 @@ function getRtLogFile(id){
     .fail(function() {
         console.log("failed retrieving logfile for PI_" + id);
         // display default cold blue screen
-        var clientInfo = {date: new Date(), layer: -1};
-		lastConsumedSegmentInfo[id] = clientInfo;
+		    lastConsumedSegmentInfo[id] = {date: new Date(), layer: -1};
   });
 }
 
