@@ -222,7 +222,7 @@ function drawTopology(data){
 			// lines[index] contains number of nodes (assumed correct everytime)
 			numberOfNodes = lines[index];
 			for(i = 0; i < numberOfNodes; i++){
-			  nodes.add({id: i, group: "router", shadow: true, color: '#3c87eb',
+			  nodes.add({id: i, group: "router", shadow: true, color: '#0c58bc',
 				  label: 'Pi #' + i, shape: "image", image: images.router[0],font: "20px arial black"});
 			}
 		}else if(part == 1){
@@ -233,7 +233,7 @@ function drawTopology(data){
 			// add edge first two entries ... connected nodes ( a -> b)
 			var edgeId = edgeInfo[0] + '-'+ edgeInfo[1];
 			edges.add({id: edgeId, from: edgeInfo[0],
-				to: edgeInfo[1], width: width, shadow: true, color: '#3c87eb', font: {align: 'bottom'}});
+				to: edgeInfo[1], width: width, shadow: true, color: '#0c58bc', font: {align: 'bottom'}});
 
       edgeInformation[edgeId]={from: edgeInfo[0], to: edgeInfo[1], bandwidthRight: edgeInfo[2],
         bandwidthLeft: edgeInfo[3], delayRight: edgeInfo[4], delayLeft: edgeInfo[5], initialWidth: width,
@@ -486,7 +486,7 @@ function highlightSelectedNodes(){
 	if (highlightActive === true) {
     // reset all edges
     for(edgeId in allEdges){
-      allEdges[edgeId].color = '#3c87eb'; // set edgeColor to a blue tone
+      allEdges[edgeId].color = '#0c58bc'; // set edgeColor to a blue tone
     }
 
 		// reset all nodes / restore 'normal' view
