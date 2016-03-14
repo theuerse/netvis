@@ -81,6 +81,10 @@
 			setupSvgCache();
 
       console.log("ready!");
+
+      // GET-param "top" overrides the path specified at the begining of the file
+      if(getUrlVar("top") !== "") topologyFilePath = getUrlVar("top");
+
       // get file directly
       $.get(topologyFilePath, function(data) {
             drawTopology(data);
@@ -1268,7 +1272,7 @@ function stringEndsWith(string, suffix){
 
 // returns the value of a GET-param identified by 'name'
 function getUrlVar(name){
-	var param = window.location.href.match('/?.*' + name + '=([0-9]*?)(&|$)');
+	var param = window.location.href.match('/?.*' + name + '=(.*?)(&|$)');
 	if(param === null) return "";
 	else return param[1];
 }
