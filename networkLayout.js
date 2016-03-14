@@ -384,9 +384,9 @@ function drawLegend(network,options,numberOfNodes,servers,groups,bitrateBounds){
       // coordinates originating in midpoint
       var x = container.clientWidth / 2;
       var y = container.clientHeight / 2;
-      var step = 100;
+      var step = 80;
 
-      options.height = '300px'; // limit height, make room for additional information
+      options.height = '265px'; // limit height, make room for additional information
       options.interaction = {zoomView: false, selectable: false, dragView: false};
       options.physics = {enabled: false};
 
