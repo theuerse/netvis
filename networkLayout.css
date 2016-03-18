@@ -65,3 +65,7 @@ meter {
 	margin-right: 5px;
 	width: 60%;
 }
+
+#trafficBusyIndicator, #rtLogBusyIndicator {
+	margin-bottom: 2px;
+}
