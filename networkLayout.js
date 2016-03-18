@@ -65,11 +65,11 @@
 
 
       //add busy - indicators
-      var trafficSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
+      var trafficSpinner = new Spinner({color: '#3170a9',top: '-12px',left: '10px',shadow: true, position: 'relative'}).spin();
       $("#trafficBusyIndicator").append(trafficSpinner.el);
       $("#trafficBusyIndicator").hide();
 
-      var rtLogSpinner = new Spinner({color: '#3170a9',top: '-10px',left: '10px',shadow: true, position: 'relative'}).spin();
+      var rtLogSpinner = new Spinner({color: '#3170a9',top: '-12px',left: '10px',shadow: true, position: 'relative'}).spin();
       $("#rtLogBusyIndicator").append(rtLogSpinner.el);
       $("#rtLogBusyIndicator").hide();
 
