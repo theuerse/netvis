@@ -132,6 +132,11 @@ function changeModeOfOperation(traffic, rtlog){
   // clear svc-visuals update interval
   if(svcVisualsUpdateInterval !== undefined) clearInterval(svcVisualsUpdateInterval);
 
+  if(svcLayerChart !== undefined){
+    svcLayerChart.destroy();
+    svcLayerChart = undefined;
+  }
+
   // clean up rtLogNodeUpdateIntervals
   clients.forEach(function(entry){
     if($("#rtLogview" + entry).length > 0){
