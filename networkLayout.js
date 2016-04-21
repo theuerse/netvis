@@ -586,24 +586,19 @@ function updateEdgeTraffic(displayTraffic){
 	var allEdges = edges.get({returnType:"Object"});
 
 	var trafficPerEdge = {};
-	var maxTraffic = 0;
   var edgeId;
   var edge;
-
-	// get traffic per edge and find max traffic on any edge
-	for(edgeId in allEdges) {
-		edge = allEdges[edgeId];
-
-    trafficPerEdge[edge.id] = (edgeTraffic[edge.from + "-" + edge.to] === undefined) ? 0 : edgeTraffic[edge.from + "-" + edge.to];
-		if(trafficPerEdge[edge.id] > maxTraffic) maxTraffic = trafficPerEdge[edge.id];
-	}
 
 	// update edge width ( trafficPerEdge / maxTraffic)
 	for(edgeId in allEdges) {
     if(displayTraffic){
-      allEdges[edgeId].width = (trafficPerEdge[edgeId] / maxTraffic) * 10;
+      edge = allEdges[edgeId];
+      trafficPerEdge[edge.id] = (edgeTraffic[edge.from + "-" + edge.to] === undefined) ? 0 : edgeTraffic[edge.from + "-" + edge.to];
+
       // TODO: Text moving has negative impact at cpu when moving nodes -> edgePhysics
       edgeInformation[edgeId].traffic = Math.round(((8* trafficPerEdge[edgeId]) / 1000)); // kbps
+
+      allEdges[edgeId].width = Math.min(10, (edgeInformation[edgeId].traffic/1000)+2);  // traffic in kbps (max-width = 10)
       allEdges[edgeId].label = edgeInformation[edgeId].traffic + " [kbps]";
 
       // update the matching (open) edge-cooltip displaying the edges traffic
@@ -1173,7 +1168,7 @@ function updateTrafficInfo(clientId){
       // no previous value, traffic is zero
       prevTraffic = (clientJson[clientId].previous.Traffic[ip] === undefined) ? 0 : parseInt(clientJson[clientId].previous.Traffic[ip]);
 
-      edgeTraffic[edgeId] = parseInt(clientJson[clientId].current.Traffic[ip]) - parseInt(clientJson[clientId].previous.Traffic[ip]);
+      edgeTraffic[edgeId] = parseInt(clientJson[clientId].current.Traffic[ip]) - prevTraffic;
       edgeTraffic[edgeId] = Math.round(edgeTraffic[edgeId] / elapsedSeconds); // traffic now in bytes per second
     }
   });
