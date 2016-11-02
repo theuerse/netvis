@@ -7,6 +7,6 @@ AddCharset UTF-8 .html .css .php .txt .js .json
 </ifmodule>
 
 <ifmodule mod_deflate.c>
- AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+ AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
  AddOutputFilter DEFLATE log
 </ifmodule>
