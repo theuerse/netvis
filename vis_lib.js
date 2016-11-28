@@ -2,7 +2,7 @@
 // Basic settings and functions for Netvis (extracted to be reused e.g. in Netplayer)
 // Main-version of this file is found in the Netvis-Project
 // (https://github.com/theuerse/netvis)
-// v1.0
+// v1.1 (after adding packetloss - support)
 //
 
 var topologyFilePath = "network/generated_network_top.txt";
@@ -198,8 +198,8 @@ function drawTopology(data){
         to: edgeInfo[1], width: width, shadow: true, color: '#0c58bc', font: {align: 'bottom'}});
 
         edgeInformation[edgeId]={from: edgeInfo[0], to: edgeInfo[1], bandwidthRight: edgeInfo[2],
-          bandwidthLeft: edgeInfo[3], delayRight: edgeInfo[4], delayLeft: edgeInfo[5], initialWidth: width,
-          traffic: undefined};
+          bandwidthLeft: edgeInfo[3], delayRight: edgeInfo[4], delayLeft: edgeInfo[5],
+          lossRight: edgeInfo[6], lossLeft: edgeInfo[7], initialWidth: width, traffic: undefined};
         }else if(part == 2){
           // update node type (Client / Server) => visual apperance
           // and relationship type color (client and server have matching colors, for now)
@@ -761,15 +761,25 @@ function drawTopology(data){
 
           var trafficInfo = (mode.traffic) ? ('<p id="trafficIndicator' + id + '">' + 'Traffic: ' + edgeInfo.traffic + '[kbps]</p>') : "";
 
-          $("body").append('<div id="' + id + '" title="'+ title + '">' +
+          var content = '<div id="' + id + '" title="'+ title + '">' +
           '<p>' + 'Bandwidth <b>' + arrowRight +'</b> : ' + edgeInfo.bandwidthRight + '[kbps]</p>' +
           '<p>' + 'Bandwidth <b>' + arrowLeft +'</b> : ' + edgeInfo.bandwidthLeft + '[kbps]</p>' +
           '<p>' + 'Delay <b>' + arrowRight + '</b> : ' + edgeInfo.delayRight + '[ms]</p>' +
-          '<p>' + 'Delay <b>' + arrowLeft + '</b> : ' + edgeInfo.delayLeft + '[ms]</p>' +
-          trafficInfo +
-          '</div>');
+          '<p>' + 'Delay <b>' + arrowLeft + '</b> : ' + edgeInfo.delayLeft + '[ms]</p>';
+
+          if(edgeInfo.lossRight !== undefined){
+            content += '<p>' + 'Loss <b>' + arrowRight + '</b> : ' + edgeInfo.lossRight + '</p>';
+          }
+
+          if(edgeInfo.lossLeft !== undefined){
+            content += '<p>' + 'Loss <b>' + arrowLeft + '</b> : ' + edgeInfo.lossLeft + '</p>';
+          }
+
+          content += trafficInfo + '</div>';
+          $("body").append(content);
 
           $('#' + id).dialog({
+            width:'auto',
             beforeClose: function(event, ui){
               toggleCooltipPinned(id);
               return false;
